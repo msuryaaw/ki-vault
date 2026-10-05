@@ -1,0 +1,40 @@
+# Internal Documentation
+docs/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+target/
+src-tauri/target/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# KiVault vault files
+*.kivault
+*.kivault.tmp
+*.kivault.bak
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Coverage / test output
+coverage/
+test-output/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
