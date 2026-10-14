@@ -1,5 +1,7 @@
 pub mod cbor;
 pub mod container;
+pub mod operations;
+pub mod storage;
 
 use crate::errors::{Result, VaultError};
 

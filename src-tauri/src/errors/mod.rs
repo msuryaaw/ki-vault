@@ -90,12 +90,45 @@ pub enum VaultError {
 }
 
 #[derive(Error, Debug)]
+pub enum StorageError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Invalid path: {0}")]
+    InvalidPath(String),
+
+    #[error("Staging file already exists: {0}")]
+    StagingFileExists(String),
+
+    #[error("Atomic replacement failed: {0}")]
+    ReplacementFailed(String),
+
+    #[error("Durability uncertain after post-replacement synchronization failure: {0}")]
+    DurabilityUncertain(String),
+
+    #[error("Container validation failed: {0}")]
+    InvalidContainer(String),
+
+    #[error("Staging candidate exists but primary vault is missing or invalid; automatic cleanup refused: {0}")]
+    StaleStagingCannotBeCleaned(String),
+}
+
+#[derive(Error, Debug)]
 pub enum AppError {
     #[error("Crypto error: {0}")]
     Crypto(#[from] CryptoError),
 
     #[error("Vault error: {0}")]
     Vault(#[from] VaultError),
+
+    #[error("Storage error: {0}")]
+    Storage(#[from] StorageError),
+}
+
+impl From<std::io::Error> for AppError {
+    fn from(err: std::io::Error) -> Self {
+        AppError::Storage(StorageError::Io(err))
+    }
 }
 
 pub type Result<T> = std::result::Result<T, AppError>;
