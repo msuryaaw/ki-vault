@@ -114,6 +114,27 @@ pub enum StorageError {
 }
 
 #[derive(Error, Debug)]
+pub enum DatabaseError {
+    #[error("SQLite error: {0}")]
+    Sqlite(#[from] rusqlite::Error),
+
+    #[error("Database payload size exceeds maximum allowed bound: {size} bytes (allowed: up to {max} bytes)")]
+    PayloadTooLarge { size: usize, max: usize },
+
+    #[error("Corrupt or invalid SQLite database image: {0}")]
+    CorruptDatabase(String),
+
+    #[error("Unsupported or invalid database schema version: {version} (supported: {supported})")]
+    UnsupportedSchemaVersion { version: u32, supported: u32 },
+
+    #[error("Database integrity check failed: {0}")]
+    IntegrityCheckFailed(String),
+
+    #[error("Database connection has already been closed")]
+    ConnectionClosed,
+}
+
+#[derive(Error, Debug)]
 pub enum AppError {
     #[error("Crypto error: {0}")]
     Crypto(#[from] CryptoError),
@@ -123,6 +144,15 @@ pub enum AppError {
 
     #[error("Storage error: {0}")]
     Storage(#[from] StorageError),
+
+    #[error("Database error: {0}")]
+    Database(#[from] DatabaseError),
+}
+
+impl From<rusqlite::Error> for AppError {
+    fn from(err: rusqlite::Error) -> Self {
+        AppError::Database(DatabaseError::Sqlite(err))
+    }
 }
 
 impl From<std::io::Error> for AppError {

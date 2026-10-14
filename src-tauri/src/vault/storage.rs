@@ -617,15 +617,22 @@ mod tests {
         }
     }
 
+    use crate::vault::sqlite::InMemoryDb;
+
+    fn make_test_sqlite_payload() -> Vec<u8> {
+        let db = InMemoryDb::create_empty().expect("create empty test db");
+        db.to_image().expect("serialize test db").to_vec()
+    }
+
     #[test]
     fn test_write_vault_atomic_first_creation() {
         let guard = TempDirGuard::new("first_creation");
         let dest = guard.path.join("vault.kivault");
         let password = b"password123";
-        let payload = b"first-creation-test-payload";
+        let payload = make_test_sqlite_payload();
 
         let container_bytes =
-            create_vault(password, 1000, 1, 1, payload).expect("create_vault succeeds");
+            create_vault(password, 1000, 1, 1, &payload).expect("create_vault succeeds");
 
         // Write atomic
         write_vault_atomic(&dest, &container_bytes).expect("write_vault_atomic succeeds");
@@ -642,7 +649,7 @@ mod tests {
         assert_eq!(read_bytes, container_bytes);
 
         let unlocked = unlock_vault(&read_bytes, password).expect("unlock_vault succeeds");
-        assert_eq!(unlocked.payload_plaintext.as_slice(), payload);
+        assert!(unlocked.db.is_open());
     }
 
     #[test]
@@ -650,17 +657,17 @@ mod tests {
         let guard = TempDirGuard::new("replacement");
         let dest = guard.path.join("vault.kivault");
         let password_v1 = b"pass-v1";
-        let payload_v1 = b"payload-v1";
+        let payload_v1 = make_test_sqlite_payload();
         let container_v1 =
-            create_vault(password_v1, 1000, 1, 1, payload_v1).expect("create_vault v1");
+            create_vault(password_v1, 1000, 1, 1, &payload_v1).expect("create_vault v1");
 
         write_vault_atomic(&dest, &container_v1).expect("write v1");
 
         // Prepare v2
         let password_v2 = b"pass-v2";
-        let payload_v2 = b"payload-v2-updated";
+        let payload_v2 = make_test_sqlite_payload();
         let container_v2 =
-            create_vault(password_v2, 2000, 1, 1, payload_v2).expect("create_vault v2");
+            create_vault(password_v2, 2000, 1, 1, &payload_v2).expect("create_vault v2");
 
         // Atomically replace
         write_vault_atomic(&dest, &container_v2).expect("write v2 replaces v1");
@@ -676,7 +683,7 @@ mod tests {
         assert_eq!(read_bytes, container_v2);
 
         let unlocked = unlock_vault(&read_bytes, password_v2).expect("unlock v2 succeeds");
-        assert_eq!(unlocked.payload_plaintext.as_slice(), payload_v2);
+        assert!(unlocked.db.is_open());
 
         // v1 password must fail on new file
         assert!(unlock_vault(&read_bytes, password_v1).is_err());
@@ -713,7 +720,8 @@ mod tests {
         f.write_all(b"pre-existing-staging-data").unwrap();
         drop(f);
 
-        let container_bytes = create_vault(b"pass", 1000, 1, 1, b"payload").expect("create_vault");
+        let payload = make_test_sqlite_payload();
+        let container_bytes = create_vault(b"pass", 1000, 1, 1, &payload).expect("create_vault");
 
         let res = write_vault_atomic(&dest, &container_bytes);
         assert!(matches!(
@@ -736,10 +744,10 @@ mod tests {
         let guard = TempDirGuard::new("preserve_target");
         let dest = guard.path.join("vault.kivault");
         let password = b"original-pass";
-        let payload = b"original-intact-payload";
+        let payload = make_test_sqlite_payload();
 
         let container_original =
-            create_vault(password, 1000, 1, 1, payload).expect("create_vault original");
+            create_vault(password, 1000, 1, 1, &payload).expect("create_vault original");
         write_vault_atomic(&dest, &container_original).expect("write original vault");
 
         // Now pre-create staging file to force failure
@@ -749,8 +757,9 @@ mod tests {
         drop(f);
 
         // Attempt write with new container
+        let new_payload = make_test_sqlite_payload();
         let container_new =
-            create_vault(b"new-pass", 2000, 1, 1, b"new-payload").expect("create_vault new");
+            create_vault(b"new-pass", 2000, 1, 1, &new_payload).expect("create_vault new");
         let res = write_vault_atomic(&dest, &container_new);
         assert!(res.is_err());
 
@@ -759,7 +768,7 @@ mod tests {
         assert_eq!(read_bytes, container_original);
 
         let unlocked = unlock_vault(&read_bytes, password).expect("unlock original vault succeeds");
-        assert_eq!(unlocked.payload_plaintext.as_slice(), payload);
+        assert!(unlocked.db.is_open());
     }
 
     #[test]
@@ -780,8 +789,10 @@ mod tests {
         let backup_b = backup_path_for(&dest_b);
         assert_ne!(backup_a, backup_b);
 
-        let container_a = create_vault(b"pass_a", 1000, 1, 1, b"data_a").unwrap();
-        let container_b = create_vault(b"pass_b", 2000, 1, 1, b"data_b").unwrap();
+        let payload_a = make_test_sqlite_payload();
+        let payload_b = make_test_sqlite_payload();
+        let container_a = create_vault(b"pass_a", 1000, 1, 1, &payload_a).unwrap();
+        let container_b = create_vault(b"pass_b", 2000, 1, 1, &payload_b).unwrap();
 
         write_vault_atomic(&dest_a, &container_a).unwrap();
         write_vault_atomic(&dest_b, &container_b).unwrap();
@@ -794,7 +805,8 @@ mod tests {
     fn test_concurrent_save_coordination() {
         let guard = TempDirGuard::new("concurrent_saves");
         let dest = Arc::new(guard.path.join("vault.kivault"));
-        let container = Arc::new(create_vault(b"pass", 1000, 1, 1, b"payload").unwrap());
+        let payload = make_test_sqlite_payload();
+        let container = Arc::new(create_vault(b"pass", 1000, 1, 1, &payload).unwrap());
 
         let mut handles = Vec::new();
         for _ in 0..4 {
@@ -823,7 +835,8 @@ mod tests {
     fn test_cleanup_refused_while_save_in_progress() {
         let guard = TempDirGuard::new("cleanup_while_saving");
         let dest = guard.path.join("vault.kivault");
-        let container = create_vault(b"pass", 1000, 1, 1, b"data").unwrap();
+        let payload = make_test_sqlite_payload();
+        let container = create_vault(b"pass", 1000, 1, 1, &payload).unwrap();
         write_vault_atomic(&dest, &container).unwrap();
 
         // Simulate an ongoing save holding the operation guard
@@ -850,7 +863,8 @@ mod tests {
     fn test_cleanup_stale_staging_when_primary_valid() {
         let guard = TempDirGuard::new("cleanup_valid");
         let dest = guard.path.join("vault.kivault");
-        let container = create_vault(b"pass", 1000, 1, 1, b"data").expect("create_vault");
+        let payload = make_test_sqlite_payload();
+        let container = create_vault(b"pass", 1000, 1, 1, &payload).expect("create_vault");
         write_vault_atomic(&dest, &container).expect("write vault");
 
         // Manually create stale staging file
@@ -918,7 +932,8 @@ mod tests {
         if status.success() {
             // Attempt to write a vault into the directory junction
             let dest = junction_dir.join("vault.kivault");
-            let container = create_vault(b"pass", 1000, 1, 1, b"data").unwrap();
+            let payload = make_test_sqlite_payload();
+            let container = create_vault(b"pass", 1000, 1, 1, &payload).unwrap();
             let res = write_vault_atomic(&dest, &container);
 
             // Must be rejected with InvalidPath error

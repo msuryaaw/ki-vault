@@ -1,3 +1,22 @@
+//! Vault Lifecycle Operations
+//!
+//! Handles creating, unlocking, locking, and rotating master passwords for KiVault containers.
+//! In accordance with `vault-format.md`, `security.md`, and `database.md`:
+//! - Secrets (VDK and intermediate plaintext buffers) are wrapped in `Zeroizing` containers.
+//! - Unlocked vaults hold an active in-memory SQLite database ([`InMemoryDb`]) instead of
+//!   a persistent raw plaintext buffer.
+//! - Upon unlocking, decrypted SQLite images are deserialized into [`InMemoryDb`]; the intermediate
+//!   decrypted buffer is held in a `Zeroizing<Vec<u8>>` and discarded after deserialization.
+//! - `header.schema_version` is validated against `PRAGMA user_version` (rejecting mismatch).
+//! - Locking explicitly closes the SQLite connection and zeroizes the VDK.
+//!
+//! # Zeroization Boundaries & Limitations
+//! - Buffers directly owned by KiVault (such as the VDK and temporary plaintext decryption/serialization
+//!   buffers) are cleared using `Zeroize`/`Zeroizing`.
+//! - Internal SQLite memory pages (B-Tree cache, heap allocations managed by SQLite's C engine) are
+//!   freed to the process allocator upon `InMemoryDb::close()` or `drop()`, but are NOT zeroized by SQLite.
+//! - Paging to disk (`pagefile.sys`/swap) or OS crash dumps remain outside userspace zeroization guarantees.
+
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::crypto::{
@@ -5,47 +24,55 @@ use crate::crypto::{
     encrypt_payload, generate_nonce, generate_salt, generate_vault_id, generate_vdk, unwrap_vdk,
     wrap_vdk, PayloadAadParams, GCM_TAG_LEN,
 };
-use crate::errors::{Result, VaultError};
+use crate::errors::{AppError, DatabaseError, Result, VaultError};
 use crate::vault::cbor::{VaultHeader, VaultHeaderParams};
 use crate::vault::container::{build_container, parse_container};
+use crate::vault::sqlite::InMemoryDb;
 
 /// Output of a successful vault creation or unlock operation held in memory.
 #[derive(Debug)]
 pub struct UnlockedVault {
     pub header: VaultHeader,
     pub vdk: Zeroizing<[u8; 32]>,
-    pub payload_plaintext: Zeroizing<Vec<u8>>,
+    pub db: InMemoryDb,
 }
 
 impl UnlockedVault {
-    /// Explicitly lock this vault, clearing and zeroizing all secrets from memory.
+    /// Explicitly lock this vault, closing the database connection and zeroizing the VDK.
     pub fn lock(&mut self) {
-        // Zeroize plaintext buffer
-        self.payload_plaintext.zeroize();
+        // Close in-memory database connection
+        self.db.close();
         // Zeroize VDK
         self.vdk.zeroize();
+    }
+}
+
+impl Drop for UnlockedVault {
+    fn drop(&mut self) {
+        self.lock();
     }
 }
 
 /// Create a new `.kivault` container in memory.
 ///
 /// Steps (§4.2, §7, §8 of `vault-format.md`):
-/// 1. Generate fresh random values:
+/// 1. Validate that `initial_payload` is a valid SQLite database image or reject before crypto.
+/// 2. Generate fresh random values:
 ///    - `vault_id`: 16-byte raw UUIDv4
 ///    - `kdf_salt`: 32-byte salt for Argon2id KEK derivation
 ///    - `wrap_nonce`: 12-byte nonce for VDK wrapping
 ///    - `vdk`: 32-byte Vault Data Key
 ///    - `payload_kdf_salt`: 32-byte salt for per-save HKDF PEK derivation
 ///    - `payload_nonce`: 12-byte nonce for payload encryption
-/// 2. Derive KEK from `password` and `kdf_salt` using Argon2id.
-/// 3. Wrap VDK with AES-256-GCM using 71-byte AAD.
-/// 4. Construct preliminary `VaultHeader` with placeholder wrapping/payload metadata.
-/// 5. Compute `header_length` from canonical deterministic CBOR encoding.
-/// 6. Compute `ciphertext_length = initial_payload.len() + 16` using checked arithmetic.
-/// 7. Derive PEK from VDK and `payload_kdf_salt` using HKDF-SHA256.
-/// 8. Build 118-byte payload AAD.
-/// 9. Encrypt `initial_payload` using AES-256-GCM with PEK and payload AAD.
-/// 10. Assemble and return complete container binary (`FixedPrefix` + CBOR header + ciphertext).
+/// 3. Derive KEK from `password` and `kdf_salt` using Argon2id.
+/// 4. Wrap VDK with AES-256-GCM using 71-byte AAD.
+/// 5. Construct preliminary `VaultHeader` with placeholder wrapping/payload metadata.
+/// 6. Compute `header_length` from canonical deterministic CBOR encoding.
+/// 7. Compute `ciphertext_length = initial_payload.len() + 16` using checked arithmetic.
+/// 8. Derive PEK from VDK and `payload_kdf_salt` using HKDF-SHA256.
+/// 9. Build 118-byte payload AAD.
+/// 10. Encrypt `initial_payload` using AES-256-GCM with PEK and payload AAD.
+/// 11. Assemble and return complete container binary (`FixedPrefix` + CBOR header + ciphertext).
 pub fn create_vault(
     password: &[u8],
     created_at: u64,
@@ -53,6 +80,18 @@ pub fn create_vault(
     minimum_reader: u32,
     initial_payload: &[u8],
 ) -> Result<Vec<u8>> {
+    // Validate that initial_payload is a valid SQLite image with matching schema version
+    let temp_db = InMemoryDb::from_image(initial_payload)?;
+    let db_version = temp_db.schema_version()?;
+    if db_version != schema_version {
+        return Err(AppError::Database(
+            DatabaseError::UnsupportedSchemaVersion {
+                version: db_version,
+                supported: schema_version,
+            },
+        ));
+    }
+
     let vault_id = generate_vault_id()?;
     let kdf_salt = generate_salt()?;
     let wrap_nonce = generate_nonce()?;
@@ -116,8 +155,10 @@ pub fn create_vault(
 /// 4. Construct 71-byte VDK-wrap AAD and unwrap VDK. Any tag failure fails closed.
 /// 5. Derive PEK from VDK and header's `payload_kdf_salt`.
 /// 6. Construct 118-byte payload AAD using prefix/header metadata and ciphertext length.
-/// 7. Decrypt and authenticate payload using AES-256-GCM.
-/// 8. Return `UnlockedVault` containing the header, zeroizing VDK, and zeroizing plaintext buffer.
+/// 7. Decrypt and authenticate payload using AES-256-GCM into a temporary `Zeroizing<Vec<u8>>`.
+/// 8. Import decrypted image into `InMemoryDb` via SQLite deserialization.
+/// 9. Verify `header.schema_version` matches SQLite's `PRAGMA user_version`. Reject mismatch.
+/// 10. Return `UnlockedVault` containing the header, zeroizing VDK, and active `InMemoryDb`.
 pub fn unlock_vault(container_bytes: &[u8], password: &[u8]) -> Result<UnlockedVault> {
     // 1. Parse container (validates prefix, file size, CBOR canonical header, and length matches)
     let container = parse_container(container_bytes)?;
@@ -151,18 +192,28 @@ pub fn unlock_vault(container_bytes: &[u8], password: &[u8]) -> Result<UnlockedV
         ciphertext_length: container.prefix.ciphertext_length,
     });
 
-    let decrypted = decrypt_payload(
+    let decrypted = Zeroizing::new(decrypt_payload(
         &pek,
         &header.payload_nonce,
         &payload_aad,
         &container.ciphertext,
-    )?;
+    )?);
 
-    Ok(UnlockedVault {
-        header,
-        vdk,
-        payload_plaintext: Zeroizing::new(decrypted),
-    })
+    // 5. Deserialize into InMemoryDb
+    let db = InMemoryDb::from_image(&decrypted)?;
+
+    // 6. Validate header.schema_version against database PRAGMA user_version
+    let db_schema_version = db.schema_version()?;
+    if header.schema_version != db_schema_version {
+        return Err(AppError::Database(
+            DatabaseError::UnsupportedSchemaVersion {
+                version: db_schema_version,
+                supported: header.schema_version,
+            },
+        ));
+    }
+
+    Ok(UnlockedVault { header, vdk, db })
 }
 
 /// Change master password by re-wrapping the VDK (§7, §11.4 of `vault-format.md`).
@@ -244,26 +295,81 @@ pub fn change_master_password(
 mod tests {
     use super::*;
     use crate::errors::CryptoError;
+    use crate::vault::sqlite::SCHEMA_VERSION_V1;
+
+    fn make_test_sqlite_image() -> Vec<u8> {
+        let db = InMemoryDb::create_empty().expect("Failed to create empty test DB");
+        {
+            let conn = db.conn().unwrap();
+            conn.execute(
+                "INSERT INTO vault_metadata (id, name, created_at, updated_at) VALUES (?1, ?2, ?3, ?4);",
+                ("test-vault-id", "Test Vault", 12345, 12345),
+            )
+            .unwrap();
+        }
+        db.to_image().unwrap().to_vec()
+    }
+
+    #[test]
+    fn test_vault_create_rejects_invalid_sqlite_image() {
+        let password = b"strong-master-password-123";
+        let bad_payload = b"not a sqlite database image";
+
+        let res = create_vault(password, 1000, 1, 1, bad_payload);
+        assert!(matches!(
+            res,
+            Err(AppError::Database(DatabaseError::CorruptDatabase(_)))
+        ));
+    }
+
+    #[test]
+    fn test_vault_create_rejects_schema_version_mismatch() {
+        let password = b"strong-master-password-123";
+        let valid_payload = make_test_sqlite_image();
+
+        // Pass schema_version = 2 while the DB user_version is 1
+        let res = create_vault(password, 1000, 2, 1, &valid_payload);
+        assert!(matches!(
+            res,
+            Err(AppError::Database(
+                DatabaseError::UnsupportedSchemaVersion {
+                    version: 1,
+                    supported: 2
+                }
+            ))
+        ));
+    }
 
     #[test]
     fn test_vault_create_unlock_roundtrip() {
         let password = b"strong-master-password-123";
-        let payload = b"SQLite format 3\0... sample database bytes ...";
+        let payload = make_test_sqlite_image();
         let created_at = 1776123456;
 
         let container_bytes =
-            create_vault(password, created_at, 1, 1, payload).expect("create_vault succeeds");
+            create_vault(password, created_at, 1, 1, &payload).expect("create_vault succeeds");
 
         let mut unlocked = unlock_vault(&container_bytes, password).expect("unlock_vault succeeds");
 
-        assert_eq!(unlocked.payload_plaintext.as_slice(), payload);
         assert_eq!(unlocked.header.created_at, created_at);
-        assert_eq!(unlocked.header.schema_version, 1);
+        assert_eq!(unlocked.header.schema_version, SCHEMA_VERSION_V1);
         assert_eq!(unlocked.header.minimum_reader, 1);
+        assert!(unlocked.db.is_open());
+
+        // Verify data in the in-memory SQLite database
+        let conn = unlocked.db.conn().unwrap();
+        let name: String = conn
+            .query_row(
+                "SELECT name FROM vault_metadata WHERE id = ?1;",
+                ["test-vault-id"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(name, "Test Vault");
 
         // Test explicit lock cleanup
         unlocked.lock();
-        assert!(unlocked.payload_plaintext.is_empty());
+        assert!(!unlocked.db.is_open());
         assert_eq!(*unlocked.vdk, [0u8; 32]);
     }
 
@@ -271,10 +377,10 @@ mod tests {
     fn test_vault_unlock_wrong_password_fails() {
         let password_correct = b"correct-password";
         let password_wrong = b"wrong-password";
-        let payload = b"Secret vault data";
+        let payload = make_test_sqlite_image();
 
         let container_bytes =
-            create_vault(password_correct, 1000, 1, 1, payload).expect("create_vault succeeds");
+            create_vault(password_correct, 1000, 1, 1, &payload).expect("create_vault succeeds");
 
         let res = unlock_vault(&container_bytes, password_wrong);
         assert!(matches!(
@@ -288,10 +394,10 @@ mod tests {
     #[test]
     fn test_vault_unlock_corrupted_payload_fails() {
         let password = b"master-pass";
-        let payload = b"Critical personal data";
+        let payload = make_test_sqlite_image();
 
         let mut container_bytes =
-            create_vault(password, 1000, 1, 1, payload).expect("create_vault succeeds");
+            create_vault(password, 1000, 1, 1, &payload).expect("create_vault succeeds");
 
         // Corrupt the last byte of the ciphertext (part of the auth tag)
         let last_idx = container_bytes.len() - 1;
@@ -309,10 +415,10 @@ mod tests {
     #[test]
     fn test_vault_unlock_corrupted_header_fails() {
         let password = b"master-pass";
-        let payload = b"Critical personal data";
+        let payload = make_test_sqlite_image();
 
         let mut container_bytes =
-            create_vault(password, 1000, 1, 1, payload).expect("create_vault succeeds");
+            create_vault(password, 1000, 1, 1, &payload).expect("create_vault succeeds");
 
         // Corrupt a byte inside the header (starts after prefix at byte 24)
         container_bytes[25] ^= 0x01;
@@ -325,10 +431,10 @@ mod tests {
     fn test_change_master_password_invariant() {
         let password_old = b"old-master-password";
         let password_new = b"new-super-secure-password";
-        let payload = b"Unchanged SQLite database content";
+        let payload = make_test_sqlite_image();
 
         let container_old =
-            create_vault(password_old, 2000, 1, 1, payload).expect("create_vault succeeds");
+            create_vault(password_old, 2000, 1, 1, &payload).expect("create_vault succeeds");
 
         // 1. Change master password
         let container_new = change_master_password(&container_old, password_old, password_new)
@@ -343,10 +449,18 @@ mod tests {
             ))
         ));
 
-        // 3. New password must unlock and retrieve identical payload
+        // 3. New password must unlock and retrieve valid working in-memory DB
         let unlocked_new =
             unlock_vault(&container_new, password_new).expect("unlock with new password succeeds");
-        assert_eq!(unlocked_new.payload_plaintext.as_slice(), payload);
+        let conn = unlocked_new.db.conn().unwrap();
+        let name: String = conn
+            .query_row(
+                "SELECT name FROM vault_metadata WHERE id = ?1;",
+                ["test-vault-id"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(name, "Test Vault");
 
         // 4. Invariant verifications (§11.4 & ST-030):
         let parsed_old = parse_container(&container_old).unwrap();

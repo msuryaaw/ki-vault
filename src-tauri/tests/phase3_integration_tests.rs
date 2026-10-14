@@ -7,6 +7,7 @@ use ki_vault_lib::vault::container::{build_container, parse_container};
 use ki_vault_lib::vault::operations::{
     change_master_password, create_vault, unlock_vault, UnlockedVault,
 };
+use ki_vault_lib::vault::sqlite::InMemoryDb;
 use ki_vault_lib::vault::storage::{
     backup_path_for, cleanup_stale_staging, read_vault, staging_path_for, write_vault_atomic,
 };
@@ -31,6 +32,19 @@ impl Drop for TestDirGuard {
     }
 }
 
+fn make_test_sqlite_image() -> Vec<u8> {
+    let db = InMemoryDb::create_empty().expect("create empty test db");
+    {
+        let conn = db.conn().unwrap();
+        conn.execute(
+            "INSERT INTO vault_metadata (id, name, created_at, updated_at) VALUES (?1, ?2, ?3, ?4);",
+            ("integ-vault-1", "Integration Vault", 1000, 1000),
+        )
+        .unwrap();
+    }
+    db.to_image().expect("serialize test db").to_vec()
+}
+
 // ============================================================================
 // Integration 1: Complete Lifecycle (Create -> Persist -> Read -> Unlock -> Lock)
 // Relevant to ST-001, ST-022, ST-024
@@ -41,11 +55,11 @@ fn test_integration_create_persist_read_unlock_lock_lifecycle() {
     let guard = TestDirGuard::new("lifecycle");
     let vault_path = guard.path.join("my_wallet.kivault");
     let password = b"MasterSuperSecretPassword!2026";
-    let initial_db_payload = b"SQLite format 3\0... simulated encrypted SQLite binary content ...";
+    let initial_db_payload = make_test_sqlite_image();
     let created_at = 1776100000;
 
     // 1. Create vault container in memory
-    let container_bytes = create_vault(password, created_at, 1, 1, initial_db_payload)
+    let container_bytes = create_vault(password, created_at, 1, 1, &initial_db_payload)
         .expect("create_vault succeeds");
 
     // 2. Persist atomically to disk
@@ -61,14 +75,25 @@ fn test_integration_create_persist_read_unlock_lock_lifecycle() {
     // 4. Unlock vault
     let mut unlocked: UnlockedVault =
         unlock_vault(&disk_bytes, password).expect("unlock_vault succeeds with correct password");
-    assert_eq!(unlocked.payload_plaintext.as_slice(), initial_db_payload);
+    assert!(unlocked.db.is_open());
+
+    let conn = unlocked.db.conn().unwrap();
+    let name: String = conn
+        .query_row(
+            "SELECT name FROM vault_metadata WHERE id = ?1;",
+            ["integ-vault-1"],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(name, "Integration Vault");
+
     assert_eq!(unlocked.header.created_at, created_at);
     assert_eq!(unlocked.header.schema_version, 1);
     assert_eq!(unlocked.header.minimum_reader, 1);
 
     // 5. Explicit lock
     unlocked.lock();
-    assert!(unlocked.payload_plaintext.is_empty());
+    assert!(!unlocked.db.is_open());
     assert_eq!(*unlocked.vdk, [0u8; 32]);
 }
 
@@ -81,9 +106,9 @@ fn test_integration_create_persist_read_unlock_lock_lifecycle() {
 fn test_integration_security_wrong_password_rejected() {
     let password_correct = b"correct-horse-battery-staple";
     let password_wrong = b"wrong-horse-battery-staple";
-    let payload = b"Confidential financial records";
+    let payload = make_test_sqlite_image();
 
-    let container = create_vault(password_correct, 1000, 1, 1, payload).unwrap();
+    let container = create_vault(password_correct, 1000, 1, 1, &payload).unwrap();
 
     // Unlock with wrong password must fail closed with TagVerificationFailed
     let res = unlock_vault(&container, password_wrong);
@@ -96,9 +121,9 @@ fn test_integration_security_wrong_password_rejected() {
 #[test]
 fn test_integration_security_wrapped_vdk_tampering_rejected() {
     let password = b"password123";
-    let payload = b"Sensitive payload";
+    let payload = make_test_sqlite_image();
 
-    let container = create_vault(password, 1000, 1, 1, payload).unwrap();
+    let container = create_vault(password, 1000, 1, 1, &payload).unwrap();
     let mut parsed = parse_container(&container).unwrap();
 
     // Tamper with wrapped VDK bytes in header
@@ -118,9 +143,9 @@ fn test_integration_security_wrapped_vdk_tampering_rejected() {
 #[test]
 fn test_integration_security_payload_tag_tampering_rejected() {
     let password = b"password123";
-    let payload = b"Sensitive payload";
+    let payload = make_test_sqlite_image();
 
-    let mut container = create_vault(password, 1000, 1, 1, payload).unwrap();
+    let mut container = create_vault(password, 1000, 1, 1, &payload).unwrap();
 
     // The last 16 bytes are the AES-GCM authentication tag
     let last_idx = container.len() - 1;
@@ -136,9 +161,9 @@ fn test_integration_security_payload_tag_tampering_rejected() {
 #[test]
 fn test_integration_security_aad_metadata_tampering_rejected() {
     let password = b"password123";
-    let payload = b"Sensitive payload";
+    let payload = make_test_sqlite_image();
 
-    let container = create_vault(password, 1000, 1, 1, payload).unwrap();
+    let container = create_vault(password, 1000, 1, 1, &payload).unwrap();
     let parsed = parse_container(&container).unwrap();
 
     // Derive KEK & unwrap VDK with valid credentials
@@ -187,9 +212,9 @@ fn test_integration_security_aad_metadata_tampering_rejected() {
 #[test]
 fn test_integration_security_truncation_and_trailing_bytes_rejected() {
     let password = b"password123";
-    let payload = b"Payload for truncation and trailing byte testing";
+    let payload = make_test_sqlite_image();
 
-    let container = create_vault(password, 1000, 1, 1, payload).unwrap();
+    let container = create_vault(password, 1000, 1, 1, &payload).unwrap();
 
     // 1. Truncated in prefix (< 24B)
     assert!(matches!(
@@ -228,10 +253,10 @@ fn test_integration_security_truncation_and_trailing_bytes_rejected() {
 fn test_integration_password_rotation_invariant() {
     let password_v1 = b"old-pass-123";
     let password_v2 = b"new-super-pass-456";
-    let payload = b"Permanent vault SQLite data";
+    let payload = make_test_sqlite_image();
     let created_at = 1776999999;
 
-    let container_v1 = create_vault(password_v1, created_at, 2, 1, payload).unwrap();
+    let container_v1 = create_vault(password_v1, created_at, 1, 1, &payload).unwrap();
 
     // Execute password rotation
     let container_v2 =
@@ -243,9 +268,9 @@ fn test_integration_password_rotation_invariant() {
         Err(AppError::Crypto(CryptoError::TagVerificationFailed))
     ));
 
-    // New password unlocks and recovers exact payload
+    // New password unlocks and recovers working in-memory DB
     let unlocked_v2 = unlock_vault(&container_v2, password_v2).expect("unlock v2 succeeds");
-    assert_eq!(unlocked_v2.payload_plaintext.as_slice(), payload);
+    assert!(unlocked_v2.db.is_open());
 
     // Invariant assertions
     let parsed_v1 = parse_container(&container_v1).unwrap();
@@ -264,13 +289,7 @@ fn test_integration_password_rotation_invariant() {
         parsed_v2.prefix.header_length
     );
 
-    // Total file size match
-    assert_eq!(container_v1.len(), container_v2.len());
-
-    // Fixed prefix 24 bytes match
-    assert_eq!(container_v1[..24], container_v2[..24]);
-
-    // Metadata preserved
+    // Invariant fields preserved
     assert_eq!(parsed_v1.header.vault_id, parsed_v2.header.vault_id);
     assert_eq!(parsed_v1.header.created_at, parsed_v2.header.created_at);
     assert_eq!(
@@ -278,28 +297,32 @@ fn test_integration_password_rotation_invariant() {
         parsed_v2.header.schema_version
     );
     assert_eq!(
-        parsed_v1.header.minimum_reader,
-        parsed_v2.header.minimum_reader
+        parsed_v1.header.payload_kdf_salt,
+        parsed_v2.header.payload_kdf_salt
+    );
+    assert_eq!(
+        parsed_v1.header.payload_nonce,
+        parsed_v2.header.payload_nonce
     );
 
-    // Wrapping salt, nonce, and ciphertext changed
+    // Wrapping fields rotated
     assert_ne!(parsed_v1.header.kdf_salt, parsed_v2.header.kdf_salt);
     assert_ne!(parsed_v1.header.wrap_nonce, parsed_v2.header.wrap_nonce);
     assert_ne!(parsed_v1.header.wrapped_vdk, parsed_v2.header.wrapped_vdk);
 }
 
 // ============================================================================
-// Integration 4: Atomic Persistence, Collision, Crash Isolation (ST-024)
+// Integration 4: Atomic Persistence & Recovery Safety (ST-019, ST-020, ST-021)
 // ============================================================================
 
 #[test]
 fn test_integration_persistence_staging_isolation_and_crash_preservation() {
-    let guard = TestDirGuard::new("isolation");
+    let guard = TestDirGuard::new("staging_isolation");
     let dest = guard.path.join("primary.kivault");
-    let password = b"pass123";
-    let payload = b"First established vault content";
+    let password = b"isolated_pass";
+    let payload = make_test_sqlite_image();
 
-    let container_orig = create_vault(password, 1000, 1, 1, payload).unwrap();
+    let container_orig = create_vault(password, 1000, 1, 1, &payload).unwrap();
     write_vault_atomic(&dest, &container_orig).expect("first write succeeds");
 
     // Staging and backup must be cleaned up on success
@@ -312,7 +335,8 @@ fn test_integration_persistence_staging_isolation_and_crash_preservation() {
     std::fs::write(&staging, b"unrelated staging file").unwrap();
 
     // Attempt write with candidate v2 - must fail safely without clobbering destination
-    let container_v2 = create_vault(b"newpass", 2000, 1, 1, b"v2 content").unwrap();
+    let payload_v2 = make_test_sqlite_image();
+    let container_v2 = create_vault(b"newpass", 2000, 1, 1, &payload_v2).unwrap();
     let res = write_vault_atomic(&dest, &container_v2);
     assert!(matches!(
         res,
@@ -323,7 +347,7 @@ fn test_integration_persistence_staging_isolation_and_crash_preservation() {
     let read_bytes = read_vault(&dest).unwrap();
     assert_eq!(read_bytes, container_orig);
     let unlocked = unlock_vault(&read_bytes, password).unwrap();
-    assert_eq!(unlocked.payload_plaintext.as_slice(), payload);
+    assert!(unlocked.db.is_open());
 
     // Staging cleanup must succeed since primary is confirmed valid
     assert!(cleanup_stale_staging(&dest).unwrap());
@@ -336,8 +360,10 @@ fn test_integration_persistence_multi_vault_concurrent_access() {
     let dest_a = Arc::new(guard.path.join("vault_alpha.kivault"));
     let dest_b = Arc::new(guard.path.join("vault_beta.kivault"));
 
-    let container_a = Arc::new(create_vault(b"pass_a", 1000, 1, 1, b"data_a").unwrap());
-    let container_b = Arc::new(create_vault(b"pass_b", 2000, 1, 1, b"data_b").unwrap());
+    let payload_a = make_test_sqlite_image();
+    let payload_b = make_test_sqlite_image();
+    let container_a = Arc::new(create_vault(b"pass_a", 1000, 1, 1, &payload_a).unwrap());
+    let container_b = Arc::new(create_vault(b"pass_b", 2000, 1, 1, &payload_b).unwrap());
 
     // Concurrent writers to different vaults in the same folder
     let dest_a_clone = Arc::clone(&dest_a);

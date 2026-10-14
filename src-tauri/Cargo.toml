@@ -25,3 +25,4 @@ sha2 = "0.10"
 rand = "0.8"
 zeroize = { version = "1.8", features = ["derive", "zeroize_derive"] }
 uuid = { version = "1.0", features = ["v4"] }
+rusqlite = { version = "0.33", features = ["bundled", "serialize"] }
