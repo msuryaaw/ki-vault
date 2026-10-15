@@ -45,6 +45,92 @@ impl UnlockedVault {
         // Zeroize VDK
         self.vdk.zeroize();
     }
+
+    /// Serializes the current active `InMemoryDb`, encrypts it under the vault's VDK
+    /// with fresh payload salt and nonce, updates `header`, and returns the complete
+    /// binary `.kivault` container.
+    ///
+    /// # Workflow (§4.2, §8, §12 of `vault-format.md`):
+    /// 1. Serialize SQLite database in memory to a `Zeroizing<Vec<u8>>` buffer.
+    /// 2. Validate that `header.schema_version` matches the database's `PRAGMA user_version`.
+    /// 3. Generate fresh random 32-byte `payload_kdf_salt` and fresh 12-byte `payload_nonce`.
+    /// 4. Construct updated `VaultHeader` with new payload salt & nonce, preserving all other fields.
+    /// 5. Compute `header_length` via canonical deterministic CBOR encoding.
+    /// 6. Compute `ciphertext_length = serialized_bytes.len() + 16` using checked arithmetic.
+    /// 7. Derive per-save PEK from VDK and `payload_kdf_salt` using HKDF-SHA256.
+    /// 8. Build 118-byte payload AAD.
+    /// 9. Encrypt serialized database bytes with AES-256-GCM.
+    /// 10. Assemble and return full container binary (`FixedPrefix` + CBOR header + ciphertext).
+    /// 11. Update `self.header` in place only upon complete success.
+    pub fn save_to_container(&mut self) -> Result<Vec<u8>> {
+        let serialized_bytes = self.db.to_image()?;
+        let db_schema_version = self.db.schema_version()?;
+        if self.header.schema_version != db_schema_version {
+            return Err(AppError::Database(
+                DatabaseError::UnsupportedSchemaVersion {
+                    version: db_schema_version,
+                    supported: self.header.schema_version,
+                },
+            ));
+        }
+
+        // Generate fresh per-save cryptographic parameters
+        let new_payload_kdf_salt = generate_salt()?;
+        let new_payload_nonce = generate_nonce()?;
+
+        // Build candidate header
+        let updated_header = VaultHeader::new_v1(VaultHeaderParams {
+            vault_id: self.header.vault_id,
+            created_at: self.header.created_at,
+            schema_version: self.header.schema_version,
+            minimum_reader: self.header.minimum_reader,
+            kdf_salt: self.header.kdf_salt,
+            wrap_nonce: self.header.wrap_nonce,
+            wrapped_vdk: self.header.wrapped_vdk,
+            payload_kdf_salt: new_payload_kdf_salt,
+            payload_nonce: new_payload_nonce,
+        })?;
+
+        let header_bytes = updated_header.to_cbor();
+        let header_len = header_bytes.len() as u32;
+
+        let ciphertext_len = (serialized_bytes.len() as u64)
+            .checked_add(GCM_TAG_LEN as u64)
+            .ok_or(VaultError::SizeArithmeticOverflow)?;
+
+        // Derive PEK and encrypt payload
+        let pek = derive_pek(&self.vdk, &new_payload_kdf_salt)?;
+        let payload_aad = build_payload_aad(&PayloadAadParams {
+            format_major: 1,
+            format_minor: 0,
+            header_length: header_len,
+            created_at: updated_header.created_at,
+            vault_id: &updated_header.vault_id,
+            schema_version: updated_header.schema_version,
+            minimum_reader: updated_header.minimum_reader,
+            payload_kdf_salt: &new_payload_kdf_salt,
+            payload_nonce: &new_payload_nonce,
+            ciphertext_length: ciphertext_len,
+        });
+
+        let ciphertext =
+            encrypt_payload(&pek, &new_payload_nonce, &payload_aad, &serialized_bytes)?;
+
+        let container_bytes = build_container(&updated_header, &ciphertext)?;
+
+        // Success: update self.header with new payload parameters
+        self.header = updated_header;
+
+        Ok(container_bytes)
+    }
+
+    /// Serializes and encrypts `InMemoryDb`, then atomically saves the container to `destination`.
+    ///
+    /// Never creates or writes plaintext database files to disk.
+    pub fn save_to_file(&mut self, destination: &std::path::Path) -> Result<()> {
+        let container_bytes = self.save_to_container()?;
+        crate::vault::storage::write_vault_atomic(destination, &container_bytes)
+    }
 }
 
 impl Drop for UnlockedVault {
@@ -497,5 +583,82 @@ mod tests {
         assert_ne!(parsed_old.header.kdf_salt, parsed_new.header.kdf_salt);
         assert_ne!(parsed_old.header.wrap_nonce, parsed_new.header.wrap_nonce);
         assert_ne!(parsed_old.header.wrapped_vdk, parsed_new.header.wrapped_vdk);
+    }
+
+    #[test]
+    fn test_unlocked_vault_save_to_container_and_unlock_roundtrip() {
+        let password = b"strong-pass-999";
+        let initial_payload = make_test_sqlite_image();
+        let container = create_vault(password, 1000, 1, 1, &initial_payload).unwrap();
+
+        let mut unlocked = unlock_vault(&container, password).unwrap();
+
+        // Mutate database in memory
+        {
+            let conn = unlocked.db.conn().unwrap();
+            conn.execute(
+                "INSERT INTO platforms (id, name, created_at, updated_at) VALUES (?1, ?2, ?3, ?4);",
+                ("plat-1", "ProtonMail", 2000, 2000),
+            )
+            .unwrap();
+        }
+
+        // Save to new container binary
+        let new_container = unlocked.save_to_container().unwrap();
+
+        // Unlock new container and verify mutation
+        let re_unlocked = unlock_vault(&new_container, password).unwrap();
+        let conn = re_unlocked.db.conn().unwrap();
+        let name: String = conn
+            .query_row(
+                "SELECT name FROM platforms WHERE id = ?1;",
+                ["plat-1"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(name, "ProtonMail");
+
+        // Verify that payload_nonce and payload_kdf_salt rotated across saves
+        let old_parsed = parse_container(&container).unwrap();
+        let new_parsed = parse_container(&new_container).unwrap();
+        assert_ne!(
+            old_parsed.header.payload_kdf_salt,
+            new_parsed.header.payload_kdf_salt
+        );
+        assert_ne!(
+            old_parsed.header.payload_nonce,
+            new_parsed.header.payload_nonce
+        );
+
+        // Vault identity & created_at preserved
+        assert_eq!(old_parsed.header.vault_id, new_parsed.header.vault_id);
+        assert_eq!(old_parsed.header.created_at, new_parsed.header.created_at);
+    }
+
+    #[test]
+    fn test_unlocked_vault_save_rejects_schema_version_mismatch() {
+        let password = b"strong-pass-999";
+        let initial_payload = make_test_sqlite_image();
+        let container = create_vault(password, 1000, 1, 1, &initial_payload).unwrap();
+
+        let mut unlocked = unlock_vault(&container, password).unwrap();
+
+        // Tamper with SQLite user_version inside the database
+        {
+            let conn = unlocked.db.conn().unwrap();
+            conn.pragma_update(None, "user_version", 2u32).unwrap();
+        }
+
+        // save_to_container must reject mismatch between header (1) and db (2)
+        let res = unlocked.save_to_container();
+        assert!(matches!(
+            res,
+            Err(AppError::Database(
+                DatabaseError::UnsupportedSchemaVersion {
+                    version: 2,
+                    supported: 1
+                }
+            ))
+        ));
     }
 }

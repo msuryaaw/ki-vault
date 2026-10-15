@@ -194,6 +194,111 @@ impl Drop for InMemoryDb {
     }
 }
 
+/// Represents a discrete schema migration step.
+///
+/// Migrations are embedded in the binary and execute sequentially.
+/// Each migration transitions the database schema from `target_version - 1` to `target_version`.
+pub struct Migration {
+    /// The resulting `PRAGMA user_version` after this migration successfully completes.
+    pub target_version: u32,
+    /// Human-readable description of the migration step for audit/logging (contains no secrets).
+    pub description: &'static str,
+    /// Function executing the transactional schema alterations for this step.
+    pub migrate_fn: fn(&Connection) -> Result<()>,
+}
+
+/// Official list of production schema migrations embedded in the binary.
+///
+/// Currently KiVault is at baseline schema v1; no production migrations exist yet.
+pub const PRODUCTION_MIGRATIONS: &[Migration] = &[];
+
+/// Runs registered migrations sequentially and transactionally against `db`.
+///
+/// # Invariants
+/// - Verifies database integrity before and after migration.
+/// - Rejects target schemas exceeding `CURRENT_SUPPORTED_SCHEMA`.
+/// - Rejects downgrades (`current_version > target_version`).
+/// - Executes each step in an immediate transaction; rolls back completely on any error.
+/// - Sets `PRAGMA user_version = target_version` upon successful step commit.
+pub fn run_migrations(
+    db: &mut InMemoryDb,
+    migrations: &[Migration],
+    target_version: u32,
+) -> Result<()> {
+    let conn = db.conn_mut()?;
+
+    // 1. Initial quick integrity check before running any migrations
+    let initial_integrity: String = conn
+        .query_row("PRAGMA quick_check;", [], |row| row.get(0))
+        .map_err(|e| {
+            DatabaseError::CorruptDatabase(format!("Initial integrity check failed: {e}"))
+        })?;
+
+    if initial_integrity != "ok" {
+        return Err(AppError::Database(DatabaseError::IntegrityCheckFailed(
+            initial_integrity,
+        )));
+    }
+
+    let mut current_version: u32 = conn.query_row("PRAGMA user_version;", [], |row| row.get(0))?;
+
+    // 2. Reject downgrade attempt
+    if current_version > target_version {
+        return Err(AppError::Database(
+            DatabaseError::UnsupportedSchemaVersion {
+                version: current_version,
+                supported: target_version,
+            },
+        ));
+    }
+
+    // 3. Sequential execution of matching migrations
+    while current_version < target_version {
+        let next_version = current_version + 1;
+        let step = migrations
+            .iter()
+            .find(|m| m.target_version == next_version)
+            .ok_or_else(|| {
+                AppError::Database(DatabaseError::UnsupportedSchemaVersion {
+                    version: current_version,
+                    supported: target_version,
+                })
+            })?;
+
+        // Run step inside an explicit transaction
+        let tx = conn.transaction()?;
+        if let Err(e) = (step.migrate_fn)(&tx) {
+            let _ = tx.rollback();
+            return Err(AppError::Database(DatabaseError::MigrationFailed {
+                from: current_version,
+                to: next_version,
+                reason: e.to_string(),
+            }));
+        }
+
+        // Update PRAGMA user_version inside the transaction
+        tx.pragma_update(None, "user_version", next_version)?;
+        tx.commit()?;
+
+        current_version = next_version;
+    }
+
+    // 4. Post-migration quick integrity check
+    let post_integrity: String = conn
+        .query_row("PRAGMA quick_check;", [], |row| row.get(0))
+        .map_err(|e| {
+            DatabaseError::CorruptDatabase(format!("Post-migration integrity check failed: {e}"))
+        })?;
+
+    if post_integrity != "ok" {
+        return Err(AppError::Database(DatabaseError::IntegrityCheckFailed(
+            post_integrity,
+        )));
+    }
+
+    Ok(())
+}
+
 /// Sets performance and memory mitigation pragmas per `database.md`.
 fn configure_pragmas(conn: &Connection) -> Result<()> {
     conn.execute_batch(
@@ -399,5 +504,128 @@ mod tests {
             AppError::Database(DatabaseError::ConnectionClosed) => {}
             other => panic!("Unexpected error: {:?}", other),
         }
+    }
+
+    #[test]
+    fn test_run_migrations_sequential_and_user_version_update() {
+        let mut db = InMemoryDb::create_empty().expect("create DB");
+        assert_eq!(db.schema_version().unwrap(), 1);
+
+        // Define synthetic migrations 1 -> 2 and 2 -> 3
+        let test_migrations = [
+            Migration {
+                target_version: 2,
+                description: "Synthetic migration to v2: create test_table_v2",
+                migrate_fn: |conn| {
+                    conn.execute_batch(
+                        "CREATE TABLE test_table_v2 (id TEXT PRIMARY KEY, val TEXT);",
+                    )?;
+                    Ok(())
+                },
+            },
+            Migration {
+                target_version: 3,
+                description: "Synthetic migration to v3: add column to test_table_v2",
+                migrate_fn: |conn| {
+                    conn.execute_batch(
+                        "ALTER TABLE test_table_v2 ADD COLUMN extra INTEGER DEFAULT 0;",
+                    )?;
+                    Ok(())
+                },
+            },
+        ];
+
+        // Run migrations up to v3
+        run_migrations(&mut db, &test_migrations, 3).expect("migrations run to v3");
+        assert_eq!(db.schema_version().unwrap(), 3);
+
+        // Verify changes applied
+        let conn = db.conn().unwrap();
+        conn.execute(
+            "INSERT INTO test_table_v2 (id, val, extra) VALUES (?1, ?2, ?3);",
+            ("item1", "test_val", 42),
+        )
+        .expect("insert into migrated table");
+    }
+
+    #[test]
+    fn test_run_migrations_transactional_rollback_on_failure() {
+        let mut db = InMemoryDb::create_empty().expect("create DB");
+        assert_eq!(db.schema_version().unwrap(), 1);
+
+        // Define a failing synthetic migration
+        let failing_migrations = [Migration {
+            target_version: 2,
+            description: "Synthetic migration that fails halfway",
+            migrate_fn: |conn| {
+                // Table creation succeeds
+                conn.execute_batch("CREATE TABLE partial_table (id TEXT PRIMARY KEY);")?;
+                // Intentional error (invalid SQL)
+                conn.execute_batch("THIS IS INVALID SQL STATEMENT;")?;
+                Ok(())
+            },
+        }];
+
+        let res = run_migrations(&mut db, &failing_migrations, 2);
+        assert!(matches!(
+            res,
+            Err(AppError::Database(DatabaseError::MigrationFailed {
+                from: 1,
+                to: 2,
+                ..
+            }))
+        ));
+
+        // Schema version must remain at 1
+        assert_eq!(db.schema_version().unwrap(), 1);
+
+        // Table created in rolled back transaction must NOT exist
+        let conn = db.conn().unwrap();
+        let table_exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='partial_table';",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            table_exists, 0,
+            "table from failed migration must not exist after rollback"
+        );
+    }
+
+    #[test]
+    fn test_run_migrations_rejects_downgrade_or_missing_step() {
+        let mut db = InMemoryDb::create_empty().expect("create DB");
+
+        // Attempting to run to target_version = 0 when currently at 1 must fail
+        let empty_migrations = [];
+        let res_downgrade = run_migrations(&mut db, &empty_migrations, 0);
+        assert!(matches!(
+            res_downgrade,
+            Err(AppError::Database(
+                DatabaseError::UnsupportedSchemaVersion {
+                    version: 1,
+                    supported: 0
+                }
+            ))
+        ));
+
+        // Attempting to jump to v3 without v2 migration step must fail
+        let gap_migrations = [Migration {
+            target_version: 3,
+            description: "Gap migration directly to v3",
+            migrate_fn: |_| Ok(()),
+        }];
+        let res_gap = run_migrations(&mut db, &gap_migrations, 3);
+        assert!(matches!(
+            res_gap,
+            Err(AppError::Database(
+                DatabaseError::UnsupportedSchemaVersion {
+                    version: 1,
+                    supported: 3
+                }
+            ))
+        ));
     }
 }

@@ -380,3 +380,269 @@ fn test_integration_persistence_multi_vault_concurrent_access() {
     assert_eq!(read_vault(&dest_a).unwrap(), *container_a);
     assert_eq!(read_vault(&dest_b).unwrap(), *container_b);
 }
+
+// ============================================================================
+// Integration 5: Encrypted Database Persistence Pipeline (Phase 4 Langkah 4)
+// ============================================================================
+
+#[test]
+fn test_integration_encrypted_db_persistence_mutation_roundtrip() {
+    let guard = TestDirGuard::new("db_persist_roundtrip");
+    let dest = guard.path.join("secure.kivault");
+    let password = b"P@ssw0rd!2026-SuperKey";
+    let initial_payload = make_test_sqlite_image();
+
+    // 1. Create and write initial vault
+    let container = create_vault(password, 1000, 1, 1, &initial_payload).unwrap();
+    write_vault_atomic(&dest, &container).unwrap();
+
+    // Verify no plaintext database file exists anywhere in guard directory
+    for entry in std::fs::read_dir(&guard.path).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_file() {
+            let name = path.file_name().unwrap().to_str().unwrap();
+            assert_eq!(
+                name, "secure.kivault",
+                "Only the encrypted container file may exist"
+            );
+        }
+    }
+
+    // 2. Unlock vault and perform business domain mutations
+    let mut unlocked = unlock_vault(&read_vault(&dest).unwrap(), password).unwrap();
+    {
+        let conn = unlocked.db.conn().unwrap();
+        conn.execute(
+            "INSERT INTO platforms (id, name, website, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5);",
+            ("plat-github", "GitHub", "https://github.com", 1500, 1500),
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO accounts (id, platform_id, username, password, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
+            ("acc-1", "plat-github", "octocat", "super-secret-token", 1500, 1500),
+        )
+        .unwrap();
+    }
+
+    // 3. Atomically persist changes to disk via save_to_file
+    unlocked.save_to_file(&dest).unwrap();
+
+    // 4. Read raw file bytes directly from disk: verify ciphertext is strictly encrypted
+    let disk_bytes = std::fs::read(&dest).unwrap();
+    let parsed_disk = parse_container(&disk_bytes).unwrap();
+    assert_ne!(
+        parsed_disk.ciphertext,
+        parse_container(&container).unwrap().ciphertext
+    );
+
+    // Scan raw bytes on disk: sensitive strings MUST NEVER appear in plaintext
+    let disk_str = String::from_utf8_lossy(&disk_bytes);
+    assert!(
+        !disk_str.contains("octocat"),
+        "Username must not appear as plaintext on disk"
+    );
+    assert!(
+        !disk_str.contains("super-secret-token"),
+        "Password must not appear as plaintext on disk"
+    );
+
+    // 5. Re-unlock from disk and verify persisted records
+    let mut re_unlocked = unlock_vault(&read_vault(&dest).unwrap(), password).unwrap();
+    let conn = re_unlocked.db.conn().unwrap();
+
+    let username: String = conn
+        .query_row(
+            "SELECT username FROM accounts WHERE id = ?1;",
+            ["acc-1"],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(username, "octocat");
+
+    let pw: String = conn
+        .query_row(
+            "SELECT password FROM accounts WHERE id = ?1;",
+            ["acc-1"],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(pw, "super-secret-token");
+
+    // Clean lock
+    re_unlocked.lock();
+    assert!(!re_unlocked.db.is_open());
+}
+
+#[test]
+fn test_integration_persistence_preserves_old_vault_on_save_failure() {
+    let guard = TestDirGuard::new("save_failure_preservation");
+    let dest = guard.path.join("original.kivault");
+    let password = b"pass123";
+    let initial_payload = make_test_sqlite_image();
+
+    let original_container = create_vault(password, 1000, 1, 1, &initial_payload).unwrap();
+    write_vault_atomic(&dest, &original_container).unwrap();
+
+    let mut unlocked = unlock_vault(&read_vault(&dest).unwrap(), password).unwrap();
+
+    // Simulate an invalid schema version tamper in memory before save
+    {
+        let conn = unlocked.db.conn().unwrap();
+        conn.pragma_update(None, "user_version", 99u32).unwrap();
+    }
+
+    // Save must fail validation
+    let save_res = unlocked.save_to_file(&dest);
+    assert!(save_res.is_err());
+
+    // Original file must remain untouched and unlockable
+    let disk_bytes = read_vault(&dest).unwrap();
+    assert_eq!(disk_bytes, original_container);
+
+    let re_unlocked = unlock_vault(&disk_bytes, password).unwrap();
+    assert_eq!(re_unlocked.header.schema_version, 1);
+}
+
+// ============================================================================
+// Integration 6: Domain Repositories Across Vault Lifecycle (Phase 4 Langkah 5)
+// ============================================================================
+
+#[test]
+fn test_integration_domain_repositories_save_lock_unlock_roundtrip() {
+    use ki_vault_lib::accounts::{
+        AccountRepository, CreateAccountParams, CreateCustomFieldParamsInput, ListAccountsFilter,
+    };
+    use ki_vault_lib::custom_fields::CustomFieldRepository;
+    use ki_vault_lib::platforms::{CreatePlatformParams, PlatformRepository};
+    use ki_vault_lib::tags::TagRepository;
+
+    let guard = TestDirGuard::new("domain_lifecycle");
+    let dest = guard.path.join("domain_vault.kivault");
+    let password = b"MasterDomainKey!2026";
+    let initial_payload = make_test_sqlite_image();
+
+    // 1. Create and persist fresh vault
+    let container = create_vault(password, 1000, 1, 1, &initial_payload).unwrap();
+    write_vault_atomic(&dest, &container).unwrap();
+
+    // 2. Unlock vault and populate domain models
+    let mut unlocked = unlock_vault(&read_vault(&dest).unwrap(), password).unwrap();
+    {
+        let plat_repo = PlatformRepository::new(&unlocked.db);
+        let tag_repo = TagRepository::new(&unlocked.db);
+        let acc_repo = AccountRepository::new(&unlocked.db);
+
+        let platform = plat_repo
+            .create(
+                CreatePlatformParams {
+                    name: "GitLab".into(),
+                    category: Some("Developer Tools".into()),
+                    website: Some("https://gitlab.com".into()),
+                    logo_id: None,
+                },
+                1000,
+            )
+            .unwrap();
+
+        let tag_work = tag_repo.create("Work", 1000).unwrap();
+        let tag_dev = tag_repo.create("DevOps", 1000).unwrap();
+
+        acc_repo
+            .create(
+                CreateAccountParams {
+                    platform_id: platform.id.clone(),
+                    display_name: Some("Work Account".into()),
+                    username: Some("gitlab_worker".into()),
+                    email: Some("worker@company.com".into()),
+                    password: Some("s3cur3-p@ss".into()),
+                    url: Some("https://gitlab.com/company".into()),
+                    notes: Some("Requires hardware token".into()),
+                    is_favorite: true,
+                    tag_ids: vec![tag_work.id.clone(), tag_dev.id.clone()],
+                    custom_fields: vec![
+                        CreateCustomFieldParamsInput {
+                            field_name: "SSH Key Fingerprint".into(),
+                            field_value: "SHA256:abc123xyz".into(),
+                            field_type: Some("text".into()),
+                            is_sensitive: Some(false),
+                        },
+                        CreateCustomFieldParamsInput {
+                            field_name: "Personal Access Token".into(),
+                            field_value: "glpat-secret-token".into(),
+                            field_type: Some("secret".into()),
+                            is_sensitive: Some(true),
+                        },
+                    ],
+                },
+                1100,
+            )
+            .unwrap();
+    }
+
+    // 3. Save to container & file
+    unlocked.save_to_file(&dest).unwrap();
+
+    // 4. Lock vault (zeroize runtime memory)
+    unlocked.lock();
+    assert!(!unlocked.db.is_open());
+    assert_eq!(*unlocked.vdk, [0u8; 32]);
+
+    // 5. Re-unlock from disk with correct password
+    let mut re_unlocked = unlock_vault(&read_vault(&dest).unwrap(), password).unwrap();
+    {
+        let plat_repo = PlatformRepository::new(&re_unlocked.db);
+        let tag_repo = TagRepository::new(&re_unlocked.db);
+        let acc_repo = AccountRepository::new(&re_unlocked.db);
+        let cf_repo = CustomFieldRepository::new(&re_unlocked.db);
+
+        // Verify platform
+        let platforms = plat_repo.list().unwrap();
+        assert_eq!(platforms.len(), 1);
+        assert_eq!(platforms[0].name, "GitLab");
+        assert_eq!(platforms[0].account_count, 1);
+
+        // Verify accounts listing
+        let accounts = acc_repo
+            .list(ListAccountsFilter {
+                platform_id: Some(platforms[0].id.clone()),
+                favorite_only: true,
+                tag_id: None,
+            })
+            .unwrap();
+        assert_eq!(accounts.len(), 1);
+        assert_eq!(accounts[0].username.as_deref(), Some("gitlab_worker"));
+
+        // Verify full account detail
+        let detail = acc_repo.get_detail(&accounts[0].id).unwrap();
+        assert_eq!(detail.tags.len(), 2);
+        let tag_names: Vec<String> = detail.tags.iter().map(|t| t.name.clone()).collect();
+        assert!(tag_names.contains(&"Work".to_string()));
+        assert!(tag_names.contains(&"DevOps".to_string()));
+
+        assert_eq!(detail.custom_fields.len(), 2);
+        let token_cf = detail
+            .custom_fields
+            .iter()
+            .find(|cf| cf.field_name == "Personal Access Token")
+            .unwrap();
+        assert_eq!(token_cf.field_value, "glpat-secret-token");
+        assert!(token_cf.is_sensitive);
+
+        // Test cascade deletion across repositories
+        plat_repo.delete(&platforms[0].id).unwrap();
+        assert!(acc_repo
+            .list(ListAccountsFilter::default())
+            .unwrap()
+            .is_empty());
+        assert!(cf_repo.list_by_account(&accounts[0].id).unwrap().is_empty());
+        assert!(tag_repo
+            .list_by_account(&accounts[0].id)
+            .unwrap()
+            .is_empty());
+    }
+
+    // Clean lock
+    re_unlocked.lock();
+    assert!(!re_unlocked.db.is_open());
+}

@@ -130,8 +130,20 @@ pub enum DatabaseError {
     #[error("Database integrity check failed: {0}")]
     IntegrityCheckFailed(String),
 
+    #[error("Schema migration failed from version {from} to {to}: {reason}")]
+    MigrationFailed { from: u32, to: u32, reason: String },
+
     #[error("Database connection has already been closed")]
     ConnectionClosed,
+
+    #[error("Entity not found: {entity} with id '{id}'")]
+    NotFound { entity: &'static str, id: String },
+
+    #[error("Invalid input for {field}: {reason}")]
+    InvalidInput { field: &'static str, reason: String },
+
+    #[error("Entity conflict: {0}")]
+    Conflict(String),
 }
 
 #[derive(Error, Debug)]
