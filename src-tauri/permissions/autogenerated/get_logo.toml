@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-logo"
+description = "Enables the get_logo command without any pre-configured scope."
+commands.allow = ["get_logo"]
+
+[[permission]]
+identifier = "deny-get-logo"
+description = "Denies the get_logo command without any pre-configured scope."
+commands.deny = ["get_logo"]

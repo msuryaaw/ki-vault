@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-replace-logo"
+description = "Enables the replace_logo command without any pre-configured scope."
+commands.allow = ["replace_logo"]
+
+[[permission]]
+identifier = "deny-replace-logo"
+description = "Denies the replace_logo command without any pre-configured scope."
+commands.deny = ["replace_logo"]

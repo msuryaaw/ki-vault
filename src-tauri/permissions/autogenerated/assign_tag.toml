@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-assign-tag"
+description = "Enables the assign_tag command without any pre-configured scope."
+commands.allow = ["assign_tag"]
+
+[[permission]]
+identifier = "deny-assign-tag"
+description = "Denies the assign_tag command without any pre-configured scope."
+commands.deny = ["assign_tag"]

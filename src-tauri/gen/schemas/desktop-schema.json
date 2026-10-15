@@ -345,6 +345,474 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Enables the assign_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-assign-logo",
+          "markdownDescription": "Enables the assign_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the assign_tag command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-assign-tag",
+          "markdownDescription": "Enables the assign_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the change_master_password command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-change-master-password",
+          "markdownDescription": "Enables the change_master_password command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the copy_secret command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-copy-secret",
+          "markdownDescription": "Enables the copy_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the create_account command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-account",
+          "markdownDescription": "Enables the create_account command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the create_platform command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-platform",
+          "markdownDescription": "Enables the create_platform command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the create_tag command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-tag",
+          "markdownDescription": "Enables the create_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the create_vault command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-vault",
+          "markdownDescription": "Enables the create_vault command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_account command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-account",
+          "markdownDescription": "Enables the delete_account command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-logo",
+          "markdownDescription": "Enables the delete_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_platform command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-platform",
+          "markdownDescription": "Enables the delete_platform command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_tag command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-tag",
+          "markdownDescription": "Enables the delete_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the generate_password command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-generate-password",
+          "markdownDescription": "Enables the generate_password command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_account_detail command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-account-detail",
+          "markdownDescription": "Enables the get_account_detail command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-logo",
+          "markdownDescription": "Enables the get_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_password_health command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-password-health",
+          "markdownDescription": "Enables the get_password_health command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_platform command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-platform",
+          "markdownDescription": "Enables the get_platform command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_security_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-security-status",
+          "markdownDescription": "Enables the get_security_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-settings",
+          "markdownDescription": "Enables the get_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_vault_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-vault-status",
+          "markdownDescription": "Enables the get_vault_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_vault_summary command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-vault-summary",
+          "markdownDescription": "Enables the get_vault_summary command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the import_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-import-logo",
+          "markdownDescription": "Enables the import_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_accounts command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-accounts",
+          "markdownDescription": "Enables the list_accounts command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_logos command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-logos",
+          "markdownDescription": "Enables the list_logos command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_platforms command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-platforms",
+          "markdownDescription": "Enables the list_platforms command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_tags command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-tags",
+          "markdownDescription": "Enables the list_tags command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the lock_vault command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-lock-vault",
+          "markdownDescription": "Enables the lock_vault command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the notify_activity command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-notify-activity",
+          "markdownDescription": "Enables the notify_activity command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the remove_tag command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-remove-tag",
+          "markdownDescription": "Enables the remove_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the rename_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-rename-logo",
+          "markdownDescription": "Enables the rename_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the rename_tag command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-rename-tag",
+          "markdownDescription": "Enables the rename_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the replace_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-replace-logo",
+          "markdownDescription": "Enables the replace_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the reveal_secret command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-reveal-secret",
+          "markdownDescription": "Enables the reveal_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the search_accounts command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-search-accounts",
+          "markdownDescription": "Enables the search_accounts command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the unlock_vault command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-unlock-vault",
+          "markdownDescription": "Enables the unlock_vault command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the update_account command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-update-account",
+          "markdownDescription": "Enables the update_account command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the update_password_generator_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-update-password-generator-settings",
+          "markdownDescription": "Enables the update_password_generator_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the update_platform command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-update-platform",
+          "markdownDescription": "Enables the update_platform command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the update_security_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-update-security-settings",
+          "markdownDescription": "Enables the update_security_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the assign_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-assign-logo",
+          "markdownDescription": "Denies the assign_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the assign_tag command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-assign-tag",
+          "markdownDescription": "Denies the assign_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the change_master_password command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-change-master-password",
+          "markdownDescription": "Denies the change_master_password command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the copy_secret command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-copy-secret",
+          "markdownDescription": "Denies the copy_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_account command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-account",
+          "markdownDescription": "Denies the create_account command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_platform command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-platform",
+          "markdownDescription": "Denies the create_platform command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_tag command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-tag",
+          "markdownDescription": "Denies the create_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_vault command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-vault",
+          "markdownDescription": "Denies the create_vault command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_account command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-account",
+          "markdownDescription": "Denies the delete_account command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-logo",
+          "markdownDescription": "Denies the delete_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_platform command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-platform",
+          "markdownDescription": "Denies the delete_platform command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_tag command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-tag",
+          "markdownDescription": "Denies the delete_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the generate_password command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-generate-password",
+          "markdownDescription": "Denies the generate_password command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_account_detail command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-account-detail",
+          "markdownDescription": "Denies the get_account_detail command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-logo",
+          "markdownDescription": "Denies the get_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_password_health command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-password-health",
+          "markdownDescription": "Denies the get_password_health command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_platform command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-platform",
+          "markdownDescription": "Denies the get_platform command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_security_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-security-status",
+          "markdownDescription": "Denies the get_security_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-settings",
+          "markdownDescription": "Denies the get_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_vault_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-vault-status",
+          "markdownDescription": "Denies the get_vault_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_vault_summary command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-vault-summary",
+          "markdownDescription": "Denies the get_vault_summary command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the import_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-import-logo",
+          "markdownDescription": "Denies the import_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_accounts command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-accounts",
+          "markdownDescription": "Denies the list_accounts command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_logos command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-logos",
+          "markdownDescription": "Denies the list_logos command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_platforms command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-platforms",
+          "markdownDescription": "Denies the list_platforms command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_tags command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-tags",
+          "markdownDescription": "Denies the list_tags command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the lock_vault command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-lock-vault",
+          "markdownDescription": "Denies the lock_vault command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the notify_activity command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-notify-activity",
+          "markdownDescription": "Denies the notify_activity command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the remove_tag command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-remove-tag",
+          "markdownDescription": "Denies the remove_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the rename_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-rename-logo",
+          "markdownDescription": "Denies the rename_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the rename_tag command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-rename-tag",
+          "markdownDescription": "Denies the rename_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the replace_logo command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-replace-logo",
+          "markdownDescription": "Denies the replace_logo command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the reveal_secret command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-reveal-secret",
+          "markdownDescription": "Denies the reveal_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the search_accounts command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-search-accounts",
+          "markdownDescription": "Denies the search_accounts command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the unlock_vault command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-unlock-vault",
+          "markdownDescription": "Denies the unlock_vault command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the update_account command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-update-account",
+          "markdownDescription": "Denies the update_account command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the update_password_generator_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-update-password-generator-settings",
+          "markdownDescription": "Denies the update_password_generator_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the update_platform command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-update-platform",
+          "markdownDescription": "Denies the update_platform command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the update_security_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-update-security-settings",
+          "markdownDescription": "Denies the update_security_settings command without any pre-configured scope."
+        },
+        {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
           "type": "string",
           "const": "core:default",
