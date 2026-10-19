@@ -5,7 +5,9 @@ import {
   Lock,
   Unlock,
   KeyRound,
-  Layers,
+  LayoutDashboard,
+  Users,
+  Globe,
   Star,
   Tag,
   Image,
@@ -13,11 +15,26 @@ import {
   LogOut,
 } from 'lucide-react';
 
+export type NavTab =
+  | 'overview'
+  | 'accounts'
+  | 'favorites'
+  | 'platforms'
+  | 'vault-details'
+  | 'settings';
+
+
 interface LayoutProps {
+  activeTab: NavTab;
+  onTabChange: (tab: NavTab) => void;
   children: React.ReactNode;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({
+  activeTab,
+  onTabChange,
+  children,
+}) => {
   const { status, summary, lockVault } = useVault();
 
   return (
@@ -42,60 +59,124 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               Navigation
             </div>
 
+            {/* Overview / Dashboard tab */}
             <button
-              className="flex w-full items-center gap-2.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-accent-foreground shadow-sm"
-              disabled
+              onClick={() => onTabChange('overview')}
+              disabled={status !== 'Unlocked'}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                status !== 'Unlocked'
+                  ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
+                  : activeTab === 'overview'
+                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+              }`}
             >
-              <KeyRound className="h-4 w-4 text-primary" />
-              <span>Vault Status</span>
-            </button>
-
-            <button
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground opacity-60 cursor-not-allowed"
-              title="Available in Phase 6 Step 2"
-              disabled
-            >
-              <Layers className="h-4 w-4" />
+              <LayoutDashboard className={`h-4 w-4 ${activeTab === 'overview' && status === 'Unlocked' ? 'text-primary' : ''}`} />
               <span>Overview</span>
             </button>
 
+            {/* Accounts tab (Phase 6 Step 4) */}
             <button
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground opacity-60 cursor-not-allowed"
-              title="Available in Phase 6 Step 2"
-              disabled
+              onClick={() => onTabChange('accounts')}
+              disabled={status !== 'Unlocked'}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                status !== 'Unlocked'
+                  ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
+                  : activeTab === 'accounts'
+                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+              }`}
             >
-              <Star className="h-4 w-4" />
+              <Users className={`h-4 w-4 ${activeTab === 'accounts' && status === 'Unlocked' ? 'text-primary' : ''}`} />
+              <span>Accounts</span>
+            </button>
+
+            {/* Favorites tab (Phase 6 Step 4) */}
+            <button
+              onClick={() => onTabChange('favorites')}
+              disabled={status !== 'Unlocked'}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                status !== 'Unlocked'
+                  ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
+                  : activeTab === 'favorites'
+                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+              }`}
+            >
+              <Star className={`h-4 w-4 ${activeTab === 'favorites' && status === 'Unlocked' ? 'text-amber-500 fill-amber-500' : ''}`} />
               <span>Favorites</span>
             </button>
 
+            {/* Platforms tab (Phase 6 Step 3) */}
             <button
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground opacity-60 cursor-not-allowed"
-              title="Available in Phase 6 Step 3"
+              onClick={() => onTabChange('platforms')}
+              disabled={status !== 'Unlocked'}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                status !== 'Unlocked'
+                  ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
+                  : activeTab === 'platforms'
+                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+              }`}
+            >
+              <Globe className={`h-4 w-4 ${activeTab === 'platforms' && status === 'Unlocked' ? 'text-primary' : ''}`} />
+              <span>Platforms</span>
+            </button>
+
+            {/* Vault Details tab */}
+            <button
+              onClick={() => onTabChange('vault-details')}
+              disabled={status !== 'Unlocked'}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                status !== 'Unlocked'
+                  ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
+                  : activeTab === 'vault-details'
+                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+              }`}
+            >
+              <KeyRound className={`h-4 w-4 ${activeTab === 'vault-details' && status === 'Unlocked' ? 'text-primary' : ''}`} />
+              <span>Vault Details</span>
+            </button>
+
+            {/* Disabled placeholders for subsequent steps */}
+            <button
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground/60 opacity-60 cursor-not-allowed"
+              title="Available in Phase 6 Step 4 / Phase 7"
               disabled
             >
               <Tag className="h-4 w-4" />
               <span>Tags</span>
             </button>
 
+
             <button
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground opacity-60 cursor-not-allowed"
-              title="Available in Phase 7"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground/60 opacity-60 cursor-not-allowed"
+              title="Available in Phase 7 (Logo Manager)"
               disabled
             >
               <Image className="h-4 w-4" />
               <span>Logo Manager</span>
             </button>
 
+            {/* Settings tab (Phase 6 Step 7) */}
             <button
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground opacity-60 cursor-not-allowed"
-              title="Available in Phase 6 Step 4"
-              disabled
+              onClick={() => onTabChange('settings')}
+              disabled={status !== 'Unlocked'}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                status !== 'Unlocked'
+                  ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
+                  : activeTab === 'settings'
+                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+              }`}
             >
-              <Sliders className="h-4 w-4" />
+              <Sliders className={`h-4 w-4 ${activeTab === 'settings' && status === 'Unlocked' ? 'text-primary' : ''}`} />
               <span>Settings</span>
             </button>
           </nav>
         </div>
+
 
         {/* Footer info & Vault Lock Status */}
         <div className="p-4 border-t border-border space-y-3">
@@ -144,7 +225,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </header>
 
-        <div className="p-8 flex-1 flex items-center justify-center">
+        <div className="p-8 flex-1 flex items-start justify-center">
           {children}
         </div>
       </main>

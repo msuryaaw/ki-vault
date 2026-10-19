@@ -95,3 +95,21 @@ export async function lockVault(): Promise<void> {
     throw normalizeError(err);
   }
 }
+
+/**
+ * Changes the vault's master password by rotating the KEK and rewrapping the VDK.
+ */
+export async function changeMasterPassword(
+  currentMasterPassword: string,
+  newMasterPassword: string
+): Promise<void> {
+  try {
+    await invoke<void>('change_master_password', {
+      currentMasterPassword,
+      newMasterPassword,
+    });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
