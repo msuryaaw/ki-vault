@@ -1,48 +1,52 @@
-import { Shield, Lock, HardDrive, Terminal } from "lucide-react";
+import React, { useState } from 'react';
+import { VaultProvider, useVault } from './stores/VaultContext';
+import { Layout } from './components/Layout';
+import { CreateVault } from './pages/CreateVault';
+import { UnlockVault } from './pages/UnlockVault';
+import { VaultStatusView } from './pages/VaultStatusView';
+import { Loader2 } from 'lucide-react';
+
+const VaultContent: React.FC = () => {
+  const { status, loading } = useVault();
+  // View mode when vault is uninitialised or locked: allows toggling between 'create' and 'unlock'
+  const [viewMode, setViewMode] = useState<'create' | 'unlock'>('unlock');
+
+  if (loading && status === 'Uninitialised') {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-3 text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-xs font-mono">Connecting to KiVault core engine...</p>
+      </div>
+    );
+  }
+
+  // 1. Vault is Unlocked -> Render Vault Status screen
+  if (status === 'Unlocked') {
+    return <VaultStatusView />;
+  }
+
+  // 2. Vault is Locked -> Render Unlock screen (or allow creating a new vault)
+  if (status === 'Locked') {
+    if (viewMode === 'create') {
+      return <CreateVault onSwitchToUnlock={() => setViewMode('unlock')} />;
+    }
+    return <UnlockVault onSwitchToCreate={() => setViewMode('create')} />;
+  }
+
+  // 3. Vault is Uninitialised -> Show create screen by default, or unlock existing from path
+  if (viewMode === 'unlock') {
+    return <UnlockVault onSwitchToCreate={() => setViewMode('create')} />;
+  }
+
+  return <CreateVault onSwitchToUnlock={() => setViewMode('unlock')} />;
+};
 
 export default function App() {
   return (
-    <main className="flex h-screen w-screen flex-col items-center justify-center bg-background p-6 text-foreground select-none">
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl space-y-6">
-        <header className="flex items-center space-x-3 border-b border-border pb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <Shield className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">KiVault</h1>
-            <p className="text-xs text-muted-foreground">Local-first Credential Vault</p>
-          </div>
-        </header>
-
-        <section className="space-y-3 text-sm text-muted-foreground">
-          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
-            <span className="flex items-center gap-2">
-              <Lock className="h-4 w-4 text-primary" /> Status
-            </span>
-            <span className="rounded bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground">
-              Phase 0 & 1 Skeleton
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
-            <span className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4 text-primary" /> Runtime
-            </span>
-            <span className="text-xs text-foreground">Tauri 2 + React + TS</span>
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
-            <span className="flex items-center gap-2">
-              <Terminal className="h-4 w-4 text-primary" /> Core Engine
-            </span>
-            <span className="text-xs text-foreground">Rust (Security Authority)</span>
-          </div>
-        </section>
-
-        <footer className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center text-xs text-muted-foreground">
-          Framework initialized. Ready for Phase 2 cryptographic core.
-        </footer>
-      </div>
-    </main>
+    <VaultProvider>
+      <Layout>
+        <VaultContent />
+      </Layout>
+    </VaultProvider>
   );
 }
