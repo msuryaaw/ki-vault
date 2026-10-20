@@ -76,7 +76,11 @@ impl VaultState {
     }
 }
 
+// Re-export SharedAutoLock from vault::autolock
+pub use crate::vault::autolock::SharedAutoLock;
+
 /// Thread-safe shared vault state injected as Tauri managed state.
+#[derive(Clone)]
 pub struct SharedVaultState(pub Arc<Mutex<VaultState>>);
 
 impl SharedVaultState {
@@ -389,33 +393,46 @@ pub fn create_vault(
 /// - `FileOperationFailed` — cannot read the vault file from disk.
 #[tauri::command]
 pub fn unlock_vault(
+    auto_lock: State<'_, SharedAutoLock>,
     state: State<'_, SharedVaultState>,
+    master_password: String,
+    vault_path: Option<String>,
+) -> std::result::Result<(), CommandError> {
+    unlock_vault_impl(&auto_lock, &state, master_password, vault_path)
+}
+
+pub fn unlock_vault_impl(
+    auto_lock: &SharedAutoLock,
+    state: &SharedVaultState,
     master_password: String,
     vault_path: Option<String>,
 ) -> std::result::Result<(), CommandError> {
     validate_password(&master_password)?;
 
-    let mut guard = lock_state(&state)?;
+    // Note: Do not acquire state lock yet to avoid holding it during Argon2id / disk read
+    let (path, password_bytes) = {
+        let guard = state.0.lock().map_err(|_| {
+            CommandError::new("Internal", "Internal vault state lock was poisoned.")
+        })?;
 
-    // Ensure we are in Locked state or can initialise from vault_path
-    let path = match (&*guard, vault_path.as_deref()) {
-        (VaultState::Locked { path }, _) => path.clone(),
-        (VaultState::Uninitialised, Some(p)) => validate_path(p)?,
-        (VaultState::Unlocked { .. }, _) => {
-            return Err(CommandError::new(
-                "VaultAlreadyExists",
-                "The vault is already unlocked.",
-            ))
-        }
-        (VaultState::Uninitialised, None) => {
-            return Err(CommandError::new(
-                "VaultLocked",
-                "No vault has been configured. Provide vault_path or create a vault first.",
-            ))
-        }
+        let path = match (&*guard, vault_path.as_deref()) {
+            (VaultState::Locked { path }, _) => path.clone(),
+            (VaultState::Uninitialised, Some(p)) => validate_path(p)?,
+            (VaultState::Unlocked { .. }, _) => {
+                return Err(CommandError::new(
+                    "VaultAlreadyExists",
+                    "The vault is already unlocked.",
+                ))
+            }
+            (VaultState::Uninitialised, None) => {
+                return Err(CommandError::new(
+                    "VaultLocked",
+                    "No vault has been configured. Provide vault_path or create a vault first.",
+                ))
+            }
+        };
+        (path, Zeroizing::new(master_password.into_bytes()))
     };
-
-    let password_bytes = Zeroizing::new(master_password.into_bytes());
 
     // Read container from disk
     let container_bytes = read_vault(&path).map_err(map_error)?;
@@ -424,11 +441,8 @@ pub fn unlock_vault(
     let vault = crate::vault::operations::unlock_vault(&container_bytes, &password_bytes)
         .map_err(map_error)?;
 
-    // Transition to Unlocked
-    *guard = VaultState::Unlocked {
-        path,
-        vault: Box::new(vault),
-    };
+    // Transition to Unlocked with AutoLockRuntime synchronization
+    crate::vault::autolock::complete_unlock(auto_lock, state, path, vault)?;
 
     Ok(())
 }
@@ -446,35 +460,18 @@ pub fn unlock_vault(
 /// - `VaultLocked` — vault is not currently unlocked.
 /// - `FileOperationFailed`, `SaveCommitDurabilityUncertain` — disk write failed.
 #[tauri::command]
-pub fn lock_vault(state: State<'_, SharedVaultState>) -> std::result::Result<(), CommandError> {
-    let mut guard = lock_state(&state)?;
+pub fn lock_vault(
+    auto_lock: State<'_, SharedAutoLock>,
+    state: State<'_, SharedVaultState>,
+) -> std::result::Result<(), CommandError> {
+    lock_vault_impl(&auto_lock, &state)
+}
 
-    // We need to take ownership of the Unlocked variant temporarily
-    let (path, mut vault) = match std::mem::replace(&mut *guard, VaultState::Uninitialised) {
-        VaultState::Unlocked { path, vault } => (path, vault),
-        other => {
-            // Restore whatever state we found and return an error
-            *guard = other;
-            return Err(CommandError::new(
-                "VaultLocked",
-                "The vault is not currently unlocked.",
-            ));
-        }
-    };
-
-    // Save to disk BEFORE locking (zeroizing) the vault.
-    // If save fails, restore Unlocked state so no data is lost.
-    if let Err(e) = vault.save_to_file(&path) {
-        // Restore Unlocked — data is preserved in memory
-        *guard = VaultState::Unlocked { path, vault };
-        return Err(map_error(e));
-    }
-
-    // Save succeeded: now zeroize secrets and transition to Locked
-    vault.lock();
-    *guard = VaultState::Locked { path };
-
-    Ok(())
+pub fn lock_vault_impl(
+    auto_lock: &SharedAutoLock,
+    state: &SharedVaultState,
+) -> std::result::Result<(), CommandError> {
+    crate::vault::autolock::execute_manual_lock(auto_lock, state)
 }
 
 /// `get_vault_status` command (api-contract.md §3).
@@ -754,51 +751,23 @@ mod tests {
         password: &str,
         vault_path: Option<&str>,
     ) -> std::result::Result<(), CommandError> {
-        validate_password(password)?;
-        let mut guard = shared.0.lock().unwrap();
-        let path = match (&*guard, vault_path) {
-            (VaultState::Locked { path }, _) => path.clone(),
-            (VaultState::Uninitialised, Some(p)) => validate_path(p)?,
-            (VaultState::Unlocked { .. }, _) => {
-                return Err(CommandError::new(
-                    "VaultAlreadyExists",
-                    "The vault is already unlocked.",
-                ))
-            }
-            (VaultState::Uninitialised, None) => {
-                return Err(CommandError::new("VaultLocked", "No vault configured."))
-            }
-        };
-        let password_bytes = Zeroizing::new(password.as_bytes().to_vec());
-        let container_bytes = read_vault(&path).map_err(map_error)?;
-        let vault = crate::vault::operations::unlock_vault(&container_bytes, &password_bytes)
-            .map_err(map_error)?;
-        *guard = VaultState::Unlocked {
-            path,
-            vault: Box::new(vault),
-        };
-        Ok(())
+        let auto_lock = SharedAutoLock::new();
+        unlock_vault_impl(
+            &auto_lock,
+            shared,
+            password.to_string(),
+            vault_path.map(|s| s.to_string()),
+        )
     }
 
     fn do_lock(shared: &SharedVaultState) -> std::result::Result<(), CommandError> {
-        let mut guard = shared.0.lock().unwrap();
-        let (path, mut vault) = match std::mem::replace(&mut *guard, VaultState::Uninitialised) {
-            VaultState::Unlocked { path, vault } => (path, vault),
-            other => {
-                *guard = other;
-                return Err(CommandError::new(
-                    "VaultLocked",
-                    "The vault is not currently unlocked.",
-                ));
-            }
-        };
-        if let Err(e) = vault.save_to_file(&path) {
-            *guard = VaultState::Unlocked { path, vault };
-            return Err(map_error(e));
+        let auto_lock = SharedAutoLock::new();
+        // Set auto_lock is_locked = false so execute_manual_lock doesn't reject
+        {
+            let mut al = auto_lock.0.lock().unwrap();
+            al.is_locked = false;
         }
-        vault.lock();
-        *guard = VaultState::Locked { path };
-        Ok(())
+        lock_vault_impl(&auto_lock, shared)
     }
 
     fn do_status(shared: &SharedVaultState) -> VaultStatusResponse {

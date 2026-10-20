@@ -30,13 +30,14 @@ use commands::settings::{
 };
 use commands::vault::{
     change_master_password, create_vault, get_vault_status, get_vault_summary, lock_vault,
-    unlock_vault, SharedVaultState,
+    unlock_vault, SharedAutoLock, SharedVaultState,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(SharedAutoLock::new())
         .manage(SharedVaultState::new())
         .invoke_handler(tauri::generate_handler![
             create_vault,

@@ -9,12 +9,21 @@ import { AccountList } from './pages/AccountList';
 import { VaultStatusView } from './pages/VaultStatusView';
 import { Settings } from './pages/Settings';
 import { Loader2 } from 'lucide-react';
+import { useAutoLockPing } from './hooks/useAutoLockPing';
 
 const VaultContent: React.FC<{ activeTab: NavTab; setActiveTab: (tab: NavTab) => void }> = ({
   activeTab,
   setActiveTab,
 }) => {
-  const { status, loading } = useVault();
+  const { status, loading, refreshStatus } = useVault();
+
+  // Attach user activity listeners while vault is unlocked
+  useAutoLockPing({
+    vaultStatus: status,
+    throttleMs: 15000,
+    onLockDetected: refreshStatus,
+  });
+
   // View mode when vault is uninitialised or locked: allows toggling between 'create' and 'unlock'
   const [viewMode, setViewMode] = useState<'create' | 'unlock'>('unlock');
 

@@ -20,6 +20,7 @@ import type {
   Tag,
   Logo,
   LogoSummary,
+  ActivityNotificationResponse,
 } from '../types/domain';
 
 import { normalizeError } from './vault';
@@ -271,6 +272,18 @@ export async function getSecurityStatus(): Promise<SecurityStatus> {
 export async function getPasswordHealth(): Promise<PasswordHealth> {
   try {
     return await invoke<PasswordHealth>('get_password_health');
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Pings Rust backend to record user activity and refresh the auto-lock deadline.
+ * Never logs or exposes passwords or sensitive data.
+ */
+export async function notifyActivity(): Promise<ActivityNotificationResponse> {
+  try {
+    return await invoke<ActivityNotificationResponse>('notify_activity');
   } catch (err) {
     throw normalizeError(err);
   }

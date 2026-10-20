@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { getAccountDetail, revealSecret, copySecret, getPlatform } from '../services/domain';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { getAccountDetail, revealSecret, copySecret, getPlatform, getSettings } from '../services/domain';
 import type { AccountDetail, Platform } from '../types/domain';
 import type { CommandError } from '../types/vault';
+import { useVault } from '../stores/VaultContext';
 import { Button } from '../components/Button';
 import { PlatformLogo } from './PlatformLogo';
 import {
@@ -47,15 +48,42 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
   // In-memory plaintext secret state (strictly wiped on hide, switch account, or modal close)
   const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
   const [revealingField, setRevealingField] = useState<string | null>(null);
+  const autoHideTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  // Clipboard copy state feedback
+  // Clipboard copy state feedback and settings
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [copyingField, setCopyingField] = useState<string | null>(null);
+  const [clipboardTimeout, setClipboardTimeout] = useState<number>(15);
+
+  const clearAllAutoHideTimers = useCallback(() => {
+    for (const key of Object.keys(autoHideTimersRef.current)) {
+      clearTimeout(autoHideTimersRef.current[key]);
+    }
+    autoHideTimersRef.current = {};
+  }, []);
+
+  // Fetch actual clipboard timeout setting from vault database
+  useEffect(() => {
+    let isMounted = true;
+    void getSettings()
+      .then((settings) => {
+        if (isMounted && settings?.security?.clipboard_timeout) {
+          setClipboardTimeout(settings.security.clipboard_timeout);
+        }
+      })
+      .catch(() => {
+        // Fallback to default 15s if settings query fails
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Load account detail and platform data
   const loadDetail = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
+    clearAllAutoHideTimers();
     setRevealedSecrets({});
     setCopiedField(null);
     try {
@@ -76,32 +104,50 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearAllAutoHideTimers]);
 
   useEffect(() => {
     if (accountId) {
       loadDetail(accountId);
     } else {
       // Clear secrets from memory immediately when closed
+      clearAllAutoHideTimers();
       setRevealedSecrets({});
       setDetail(null);
       setPlatform(null);
     }
-  }, [accountId, loadDetail]);
+  }, [accountId, loadDetail, clearAllAutoHideTimers]);
 
-  // Clean up in-memory secrets on unmount
+  const { status: vaultStatus } = useVault();
+
+  useEffect(() => {
+    if (vaultStatus !== 'Unlocked') {
+      clearAllAutoHideTimers();
+      setRevealedSecrets({});
+      setDetail(null);
+      setPlatform(null);
+      onClose();
+    }
+  }, [vaultStatus, onClose, clearAllAutoHideTimers]);
+
+  // Clean up in-memory secrets and timers on unmount
   useEffect(() => {
     return () => {
+      clearAllAutoHideTimers();
       setRevealedSecrets({});
     };
-  }, []);
+  }, [clearAllAutoHideTimers]);
 
-  if (!accountId) return null;
+  if (!accountId || vaultStatus !== 'Unlocked') return null;
 
   // Reveal secret in-memory toggle
   const handleToggleReveal = async (fieldName: string) => {
     // If already revealed, hide it and remove from memory immediately
     if (revealedSecrets[fieldName]) {
+      if (autoHideTimersRef.current[fieldName]) {
+        clearTimeout(autoHideTimersRef.current[fieldName]);
+        delete autoHideTimersRef.current[fieldName];
+      }
       setRevealedSecrets((prev) => {
         const next = { ...prev };
         delete next[fieldName];
@@ -119,6 +165,19 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
         ...prev,
         [fieldName]: secret,
       }));
+
+      // Schedule automatic hide after 30 seconds to minimize exposure duration
+      if (autoHideTimersRef.current[fieldName]) {
+        clearTimeout(autoHideTimersRef.current[fieldName]);
+      }
+      autoHideTimersRef.current[fieldName] = setTimeout(() => {
+        delete autoHideTimersRef.current[fieldName];
+        setRevealedSecrets((prev) => {
+          const next = { ...prev };
+          delete next[fieldName];
+          return next;
+        });
+      }, 30000);
     } catch (err) {
       setError(err as CommandError);
     } finally {
@@ -131,7 +190,7 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
     setCopyingField(fieldName);
     setError(null);
     try {
-      await copySecret(accountId, fieldName, 15);
+      await copySecret(accountId, fieldName, clipboardTimeout);
       setCopiedField(fieldName);
       setTimeout(() => {
         setCopiedField((curr) => (curr === fieldName ? null : curr));

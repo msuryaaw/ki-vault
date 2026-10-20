@@ -1,3 +1,4 @@
+pub mod autolock;
 pub mod cbor;
 pub mod container;
 pub mod operations;

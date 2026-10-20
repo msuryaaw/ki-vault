@@ -263,10 +263,6 @@ export interface Logo {
   updated_at: number;
 }
 
-/**
- * Lightweight Logo summary without raw image bytes.
- * Mirrors Rust `crate::logos::LogoSummary`.
- */
 export interface LogoSummary {
   id: string;
   name: string;
@@ -274,6 +270,15 @@ export interface LogoSummary {
   size_bytes: number;
   created_at: number;
   updated_at: number;
+}
+
+/**
+ * Activity notification response returned by `notify_activity`.
+ * Mirrors Rust `crate::security::ActivityNotificationResponse`.
+ */
+export interface ActivityNotificationResponse {
+  acknowledged: boolean;
+  auto_lock_enforced: boolean;
 }
 
 

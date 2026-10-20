@@ -15,7 +15,9 @@
 
 use tauri::State;
 
-use crate::commands::vault::{map_error, CommandError, SharedVaultState, VaultState};
+use crate::commands::vault::{
+    map_error, CommandError, SharedAutoLock, SharedVaultState, VaultState,
+};
 use crate::security::{
     calculate_password_health, get_security_status_for_vault, ActivityNotificationResponse,
     PasswordHealthResponse, SecurityStatusResponse,
@@ -58,27 +60,50 @@ pub fn get_password_health_impl(
 }
 
 pub fn notify_activity_impl(
+    auto_lock: &SharedAutoLock,
     shared: &SharedVaultState,
 ) -> std::result::Result<ActivityNotificationResponse, CommandError> {
-    let guard = shared
+    notify_activity_with_clock(auto_lock, shared, &crate::vault::autolock::SystemClock)
+}
+
+pub fn notify_activity_with_clock<C: crate::vault::autolock::Clock>(
+    auto_lock: &SharedAutoLock,
+    shared: &SharedVaultState,
+    clock: &C,
+) -> std::result::Result<ActivityNotificationResponse, CommandError> {
+    // Follow strict order: AutoLockRuntime -> VaultState
+    let mut al = auto_lock.0.lock().map_err(|_| {
+        CommandError::new("Internal", "Internal auto-lock runtime lock was poisoned.")
+    })?;
+
+    if al.is_locked {
+        return Err(CommandError::new(
+            "VaultLocked",
+            "The vault must be unlocked to perform this operation.",
+        ));
+    }
+
+    let vs = shared
         .0
         .lock()
         .map_err(|_| CommandError::new("Internal", "Internal vault state lock was poisoned."))?;
-    match &*guard {
+
+    match &*vs {
         VaultState::Unlocked { .. } => {
-            // Acknowledge user activity.
-            // Note: Background thread auto-lock enforcement runtime is scheduled
-            // for Phase 8 per roadmap. Rust acknowledges the ping while reporting
-            // auto_lock_enforced as false until the background runtime loop is active.
+            // Acknowledge user activity and reset deadline
+            al.last_activity = clock.now();
             Ok(ActivityNotificationResponse {
                 acknowledged: true,
-                auto_lock_enforced: false,
+                auto_lock_enforced: al.effective_timeout.is_some(),
             })
         }
-        _ => Err(CommandError::new(
-            "VaultLocked",
-            "The vault must be unlocked to perform this operation.",
-        )),
+        _ => {
+            al.is_locked = true;
+            Err(CommandError::new(
+                "VaultLocked",
+                "The vault must be unlocked to perform this operation.",
+            ))
+        }
     }
 }
 
@@ -101,9 +126,10 @@ pub fn get_password_health(
 /// Notify user activity to reset auto-lock deadline (`api-contract.md` §10).
 #[tauri::command]
 pub fn notify_activity(
+    auto_lock: State<'_, SharedAutoLock>,
     state: State<'_, SharedVaultState>,
 ) -> std::result::Result<ActivityNotificationResponse, CommandError> {
-    notify_activity_impl(&state)
+    notify_activity_impl(&auto_lock, &state)
 }
 
 #[cfg(test)]
@@ -153,6 +179,7 @@ mod tests {
     #[test]
     fn test_security_commands_reject_when_locked() {
         let state = SharedVaultState::new();
+        let auto_lock = SharedAutoLock::new();
 
         assert_eq!(
             get_security_status_impl(&state).unwrap_err().code,
@@ -163,7 +190,7 @@ mod tests {
             "VaultLocked"
         );
         assert_eq!(
-            notify_activity_impl(&state).unwrap_err().code,
+            notify_activity_impl(&auto_lock, &state).unwrap_err().code,
             "VaultLocked"
         );
     }
@@ -343,8 +370,14 @@ mod tests {
     #[test]
     fn test_notify_activity_acknowledged() {
         let shared = build_unlocked_shared_state();
-        let res = notify_activity_impl(&shared).unwrap();
+        let auto_lock = SharedAutoLock::new();
+        {
+            let mut al = auto_lock.0.lock().unwrap();
+            al.is_locked = false;
+            al.effective_timeout = Some(std::time::Duration::from_secs(300));
+        }
+        let res = notify_activity_impl(&auto_lock, &shared).unwrap();
         assert!(res.acknowledged);
-        assert!(!res.auto_lock_enforced);
+        assert!(res.auto_lock_enforced);
     }
 }

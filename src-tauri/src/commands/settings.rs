@@ -12,10 +12,13 @@
 
 use tauri::State;
 
-use crate::commands::vault::{map_error, CommandError, SharedVaultState, VaultState};
+use crate::commands::vault::{
+    map_error, CommandError, SharedAutoLock, SharedVaultState, VaultState,
+};
 use crate::settings::{
     PasswordGeneratorSettings, SecuritySettings, SettingsRepository, VaultSettings,
 };
+use crate::vault::autolock::parse_auto_lock_duration;
 
 pub fn get_settings_impl(
     shared: &SharedVaultState,
@@ -37,13 +40,27 @@ pub fn get_settings_impl(
 }
 
 pub fn update_security_settings_impl(
+    auto_lock: &SharedAutoLock,
     shared: &SharedVaultState,
     settings: SecuritySettings,
 ) -> std::result::Result<SecuritySettings, CommandError> {
+    // Acquire locks in strict order: AutoLockRuntime -> VaultState
+    let mut al = auto_lock.0.lock().map_err(|_| {
+        CommandError::new("Internal", "Internal auto-lock runtime lock was poisoned.")
+    })?;
+
+    if al.is_locked {
+        return Err(CommandError::new(
+            "VaultLocked",
+            "The vault must be unlocked to perform this operation.",
+        ));
+    }
+
     let mut guard = shared
         .0
         .lock()
         .map_err(|_| CommandError::new("Internal", "Internal vault state lock was poisoned."))?;
+
     match &mut *guard {
         VaultState::Unlocked { path, vault } => {
             let repo = SettingsRepository::new(&vault.db);
@@ -52,12 +69,18 @@ pub fn update_security_settings_impl(
             // Atomically persist changes to disk
             vault.save_to_file(path).map_err(map_error)?;
 
+            // Atomically update in-memory runtime timeout while holding both locks
+            al.effective_timeout = parse_auto_lock_duration(&settings.auto_lock);
+
             Ok(settings)
         }
-        _ => Err(CommandError::new(
-            "VaultLocked",
-            "The vault must be unlocked to perform this operation.",
-        )),
+        _ => {
+            al.is_locked = true;
+            Err(CommandError::new(
+                "VaultLocked",
+                "The vault must be unlocked to perform this operation.",
+            ))
+        }
     }
 }
 
@@ -98,10 +121,11 @@ pub fn get_settings(
 /// Update security settings (auto-lock and clipboard timeouts) (`api-contract.md` §11).
 #[tauri::command]
 pub fn update_security_settings(
+    auto_lock: State<'_, SharedAutoLock>,
     state: State<'_, SharedVaultState>,
     settings: SecuritySettings,
 ) -> std::result::Result<SecuritySettings, CommandError> {
-    update_security_settings_impl(&state, settings)
+    update_security_settings_impl(&auto_lock, &state, settings)
 }
 
 /// Update password generator default settings (`api-contract.md` §11).
@@ -160,11 +184,12 @@ mod tests {
     #[test]
     fn test_settings_commands_locked_checks() {
         let state = SharedVaultState::new();
+        let auto_lock = SharedAutoLock::new();
 
         // 1. Uninitialised -> VaultLocked
         assert_eq!(get_settings_impl(&state).unwrap_err().code, "VaultLocked");
         assert_eq!(
-            update_security_settings_impl(&state, SecuritySettings::default())
+            update_security_settings_impl(&auto_lock, &state, SecuritySettings::default())
                 .unwrap_err()
                 .code,
             "VaultLocked"
@@ -189,12 +214,15 @@ mod tests {
         let unlocked = unlock_vault(&container_bytes, &pw_zero).unwrap();
 
         let state = SharedVaultState::new();
+        let auto_lock = SharedAutoLock::new();
         {
             let mut g = state.0.lock().unwrap();
             *g = VaultState::Unlocked {
                 path: temp.path.clone(),
                 vault: Box::new(unlocked),
             };
+            let mut al = auto_lock.0.lock().unwrap();
+            al.is_locked = false;
         }
 
         // 2. Initial settings should be default
@@ -207,6 +235,7 @@ mod tests {
 
         // 3. Update security settings with invalid inputs
         let err_invalid_autolock = update_security_settings_impl(
+            &auto_lock,
             &state,
             SecuritySettings {
                 auto_lock: "10m".to_string(), // not in allow-list
@@ -217,6 +246,7 @@ mod tests {
         assert_eq!(err_invalid_autolock.code, "InvalidInput");
 
         let err_invalid_clipboard = update_security_settings_impl(
+            &auto_lock,
             &state,
             SecuritySettings {
                 auto_lock: "5m".to_string(),
@@ -228,6 +258,7 @@ mod tests {
 
         // 4. Update security settings with valid inputs
         let updated_sec = update_security_settings_impl(
+            &auto_lock,
             &state,
             SecuritySettings {
                 auto_lock: "30m".to_string(),

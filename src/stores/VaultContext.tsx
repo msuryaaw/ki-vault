@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import type { VaultStatus, VaultSummary, CommandError } from '../types/vault';
 import {
   getVaultStatus,
@@ -28,8 +28,16 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<CommandError | null>(null);
 
-  const refreshStatus = useCallback(async () => {
-    setLoading(true);
+  const isCheckingRef = useRef<boolean>(false);
+
+  const refreshStatus = useCallback(async (showLoading: boolean = true) => {
+    if (isCheckingRef.current) {
+      return;
+    }
+    isCheckingRef.current = true;
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       const currentStatus = await getVaultStatus();
       setStatus(currentStatus);
@@ -44,13 +52,31 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err) {
       setError(err as CommandError);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
+      isCheckingRef.current = false;
     }
   }, []);
 
   useEffect(() => {
-    refreshStatus();
+    refreshStatus(true);
   }, [refreshStatus]);
+
+  // Polling synchronization: only active when vault is Unlocked
+  useEffect(() => {
+    if (status !== 'Unlocked') {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshStatus(false);
+    }, 2000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [status, refreshStatus]);
 
   const handleCreateVault = async (path: string, name: string, password: string) => {
     setLoading(true);
