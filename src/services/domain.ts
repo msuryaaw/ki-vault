@@ -17,6 +17,9 @@ import type {
   SecuritySettings,
   PasswordGeneratorSettings,
   VaultSettings,
+  Tag,
+  Logo,
+  LogoSummary,
 } from '../types/domain';
 
 import { normalizeError } from './vault';
@@ -333,6 +336,173 @@ export async function updatePasswordGeneratorSettings(
     return await invoke<PasswordGeneratorSettings>('update_password_generator_settings', {
       settings,
     });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+// ─── Tag Commands (docs/api-contract.md §8) ───────────────────────────────────
+
+/**
+ * Creates a new tag.
+ */
+export async function createTag(name: string): Promise<Tag> {
+  try {
+    return await invoke<Tag>('create_tag', { name });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Lists all tags in the vault.
+ */
+export async function listTags(): Promise<Tag[]> {
+  try {
+    return await invoke<Tag[]>('list_tags');
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Renames an existing tag.
+ */
+export async function renameTag(tagId: string, name: string): Promise<Tag> {
+  try {
+    return await invoke<Tag>('rename_tag', { tagId, name });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Deletes a tag and cascades removal of tag assignments.
+ */
+export async function deleteTag(tagId: string): Promise<void> {
+  try {
+    await invoke<void>('delete_tag', { tagId });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Assigns a tag to an account.
+ */
+export async function assignTag(accountId: string, tagId: string): Promise<void> {
+  try {
+    await invoke<void>('assign_tag', { accountId, tagId });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Removes a tag assignment from an account.
+ */
+export async function removeTag(accountId: string, tagId: string): Promise<void> {
+  try {
+    await invoke<void>('remove_tag', { accountId, tagId });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+// ─── Logo Commands (docs/api-contract.md §9) ──────────────────────────────────
+
+/**
+ * Imports a new logo into the vault database.
+ * Size limit is <= 2 MiB. Supported: image/png, image/jpeg, image/webp, image/svg+xml.
+ */
+export async function importLogo(
+  name: string,
+  mimeType: string,
+  imageData: number[]
+): Promise<Logo> {
+  try {
+    return await invoke<Logo>('import_logo', {
+      name,
+      mimeType,
+      imageData,
+    });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Lists lightweight logo summaries (metadata only, without raw image bytes).
+ */
+export async function listLogos(): Promise<LogoSummary[]> {
+  try {
+    return await invoke<LogoSummary[]>('list_logos');
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Retrieves full logo entity including sanitized image bytes.
+ */
+export async function getLogo(logoId: string): Promise<Logo> {
+  try {
+    return await invoke<Logo>('get_logo', { logoId });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Renames an existing logo.
+ */
+export async function renameLogo(logoId: string, newName: string): Promise<Logo> {
+  try {
+    return await invoke<Logo>('rename_logo', { logoId, newName });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Replaces the image content and MIME type of an existing logo.
+ */
+export async function replaceLogo(
+  logoId: string,
+  newMimeType: string,
+  newImageData: number[]
+): Promise<Logo> {
+  try {
+    return await invoke<Logo>('replace_logo', {
+      logoId,
+      newMimeType,
+      newImageData,
+    });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Deletes a logo from the vault and nullifies any platform reference.
+ */
+export async function deleteLogo(logoId: string): Promise<void> {
+  try {
+    await invoke<void>('delete_logo', { logoId });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Assigns or unassigns a logo to/from a platform.
+ */
+export async function assignLogo(
+  platformId: string,
+  logoId: string | null
+): Promise<void> {
+  try {
+    await invoke<void>('assign_logo', { platformId, logoId: logoId || null });
   } catch (err) {
     throw normalizeError(err);
   }

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import type { PlatformSummary, CreatePlatformInput, UpdatePlatformInput } from '../types/domain';
 import { Button } from './Button';
 import { Input } from './Input';
-import { Globe, X } from 'lucide-react';
+import { LogoManagerModal } from './LogoManagerModal';
+import { Globe, X, Image as ImageIcon } from 'lucide-react';
 
 interface PlatformFormModalProps {
   isOpen: boolean;
@@ -22,6 +23,8 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [website, setWebsite] = useState('');
+  const [logoId, setLogoId] = useState<string | null>(null);
+  const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,10 +32,12 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
       setName(initialData.name || '');
       setCategory(initialData.category || '');
       setWebsite(initialData.website || '');
+      setLogoId(initialData.logo_id || null);
     } else {
       setName('');
       setCategory('');
       setWebsite('');
+      setLogoId(null);
     }
     setClientError(null);
   }, [initialData, isOpen]);
@@ -56,6 +61,7 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
         name: trimmedName,
         category: category.trim() || null,
         website: website.trim() || null,
+        logo_id: logoId,
       });
       onClose();
     } catch (err: unknown) {
@@ -107,6 +113,49 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
             disabled={loading}
           />
 
+          {/* Logo Selection Section */}
+          <div className="space-y-1.5 pt-1">
+            <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                Platform Logo (Optional)
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsLogoModalOpen(true)}
+                className="text-[11px] text-primary hover:underline cursor-pointer font-medium"
+              >
+                {logoId ? 'Change Logo' : 'Choose Logo...'}
+              </button>
+            </label>
+            <div className="flex items-center justify-between p-2.5 rounded-lg border border-input bg-background/50">
+              <span className="text-xs text-muted-foreground">
+                {logoId ? 'Custom logo attached' : 'Default platform icon'}
+              </span>
+              {logoId ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLogoId(null)}
+                  className="h-6 px-2 text-[10px]"
+                >
+                  Remove
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsLogoModalOpen(true)}
+                  className="h-6 px-2 text-[10px]"
+                >
+                  Browse...
+                </Button>
+              )}
+            </div>
+          </div>
+
           {clientError && (
             <p className="text-xs text-destructive">{clientError}</p>
           )}
@@ -132,6 +181,17 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Logo Manager Modal */}
+      <LogoManagerModal
+        isOpen={isLogoModalOpen}
+        onClose={() => setIsLogoModalOpen(false)}
+        selectedLogoId={logoId}
+        onSelectLogo={(newLogoId) => {
+          setLogoId(newLogoId);
+          setIsLogoModalOpen(false);
+        }}
+      />
     </div>
   );
 };

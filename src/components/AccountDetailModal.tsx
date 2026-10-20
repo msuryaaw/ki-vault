@@ -3,6 +3,7 @@ import { getAccountDetail, revealSecret, copySecret, getPlatform } from '../serv
 import type { AccountDetail, Platform } from '../types/domain';
 import type { CommandError } from '../types/vault';
 import { Button } from '../components/Button';
+import { PlatformLogo } from './PlatformLogo';
 import {
   X,
   Eye,
@@ -11,7 +12,6 @@ import {
   Check,
   ExternalLink,
   User,
-  Key,
   Tag as TagIcon,
   FileText,
   Star,
@@ -172,9 +172,11 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/50 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
-              <Key className="h-5 w-5" />
-            </div>
+            <PlatformLogo
+              logoId={platform?.logo_id}
+              platformName={platform?.name}
+              size="lg"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-foreground">

@@ -25,6 +25,8 @@ import { DeletePlatformModal } from '../components/DeletePlatformModal';
 import { AccountDetailModal } from '../components/AccountDetailModal';
 import { AccountFormModal } from '../components/AccountFormModal';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
+import { LogoManagerModal } from '../components/LogoManagerModal';
+import { PlatformLogo } from '../components/PlatformLogo';
 import {
 
 
@@ -42,6 +44,7 @@ import {
   Mail,
   AlertCircle,
   Tag,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 interface PlatformListProps {
@@ -66,6 +69,7 @@ export const PlatformList: React.FC<PlatformListProps> = ({
 
   // Modals state
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isLogoManagerModalOpen, setIsLogoManagerModalOpen] = useState(false);
   const [editingPlatform, setEditingPlatform] = useState<PlatformSummary | null>(null);
   const [deletingPlatform, setDeletingPlatform] = useState<PlatformSummary | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
@@ -248,9 +252,13 @@ export const PlatformList: React.FC<PlatformListProps> = ({
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
+              <PlatformLogo
+                logoId={selectedPlatform.logo_id}
+                platformName={selectedPlatform.name}
+                size="lg"
+              />
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                  <Globe className="h-6 w-6 text-primary" />
                   <span>{selectedPlatform.name}</span>
                 </h2>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
@@ -402,6 +410,16 @@ export const PlatformList: React.FC<PlatformListProps> = ({
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setIsLogoManagerModalOpen(true)}
+                className="gap-1.5"
+                title="Manage Logos"
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+                <span>Logos</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={loadPlatforms}
                 loading={loading}
                 title="Refresh platform list"
@@ -503,9 +521,11 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center text-primary shrink-0">
-                          <Globe className="h-4 w-4" />
-                        </div>
+                        <PlatformLogo
+                          logoId={p.logo_id}
+                          platformName={p.name}
+                          size="md"
+                        />
                         <div>
                           <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
                             {p.name}
@@ -625,6 +645,13 @@ export const PlatformList: React.FC<PlatformListProps> = ({
         onClose={() => setDeletingAccount(null)}
         onConfirm={handleDeleteAccount}
         loading={actionLoading}
+      />
+
+      {/* Logo Manager Modal (Phase 7 Step 3) */}
+      <LogoManagerModal
+        isOpen={isLogoManagerModalOpen}
+        onClose={() => setIsLogoManagerModalOpen(false)}
+        onLogosUpdated={loadPlatforms}
       />
     </div>
   );

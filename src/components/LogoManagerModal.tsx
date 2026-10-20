@@ -1,0 +1,597 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import type { LogoSummary } from '../types/domain';
+import type { CommandError } from '../types/vault';
+import {
+  listLogos,
+  importLogo,
+  renameLogo,
+  deleteLogo,
+  getLogo,
+} from '../services/domain';
+import { Button } from './Button';
+import { Input } from './Input';
+import {
+  Image,
+  Upload,
+  Trash2,
+  Edit2,
+  X,
+  Check,
+  AlertCircle,
+  RefreshCw,
+  CheckCircle2,
+} from 'lucide-react';
+
+const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2 MiB
+const ALLOWED_MIME_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/svg+xml',
+];
+
+interface LogoManagerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedLogoId?: string | null;
+  onSelectLogo?: (logoId: string | null) => void;
+  onLogosUpdated?: () => void;
+}
+
+export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
+  isOpen,
+  onClose,
+  selectedLogoId,
+  onSelectLogo,
+  onLogosUpdated,
+}) => {
+  const [logos, setLogos] = useState<LogoSummary[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Cache for loaded logo previews (blob URLs)
+  const [logoUrls, setLogoUrls] = useState<Record<string, string>>({});
+  const blobUrlsRef = useRef<Record<string, string>>({});
+
+  // Import State
+  const [isImporting, setIsImporting] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [importName, setImportName] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importPreviewUrl, setImportPreviewUrl] = useState<string | null>(null);
+
+  // Edit / Rename State
+  const [editingLogoId, setEditingLogoId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState<string>('');
+  const [isRenaming, setIsRenaming] = useState<boolean>(false);
+
+  // Deletion Confirmation State
+  const [deletingLogoId, setDeletingLogoId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  // Clean up blob URLs when component unmounts or modal closes
+  const cleanupBlobUrls = useCallback(() => {
+    Object.values(blobUrlsRef.current).forEach((url) => {
+      URL.revokeObjectURL(url);
+    });
+    blobUrlsRef.current = {};
+    setLogoUrls({});
+  }, []);
+
+  const fetchLogos = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await listLogos();
+      setLogos(data);
+    } catch (err) {
+      const maybeErr = err as CommandError;
+      setError(maybeErr.message || 'Failed to load logos.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchLogos();
+      setImportName('');
+      setSelectedFile(null);
+      if (importPreviewUrl) {
+        URL.revokeObjectURL(importPreviewUrl);
+        setImportPreviewUrl(null);
+      }
+      setEditingLogoId(null);
+      setDeletingLogoId(null);
+    } else {
+      cleanupBlobUrls();
+    }
+  }, [isOpen, fetchLogos, cleanupBlobUrls, importPreviewUrl]);
+
+  // Load thumbnail on demand for visible logo summary
+  const loadLogoPreview = useCallback(async (logoId: string) => {
+    if (blobUrlsRef.current[logoId]) return;
+
+    try {
+      const fullLogo = await getLogo(logoId);
+      const uint8 = new Uint8Array(fullLogo.image_data);
+      const blob = new Blob([uint8], { type: fullLogo.mime_type });
+      const objectUrl = URL.createObjectURL(blob);
+      blobUrlsRef.current[logoId] = objectUrl;
+      setLogoUrls((prev) => ({ ...prev, [logoId]: objectUrl }));
+    } catch {
+      // Failed to load preview; will show fallback icon
+    }
+  }, []);
+
+  // Lazy-load previews for all returned logos
+  useEffect(() => {
+    logos.forEach((logo) => {
+      loadLogoPreview(logo.id);
+    });
+  }, [logos, loadLogoPreview]);
+
+  if (!isOpen) return null;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size limit: 2 MiB
+    if (file.size > MAX_LOGO_SIZE_BYTES) {
+      setError(`File is too large (${(file.size / (1024 * 1024)).toFixed(2)} MB). Maximum allowed size is 2 MB.`);
+      return;
+    }
+
+    // Check MIME type
+    const mime = file.type || '';
+    if (!ALLOWED_MIME_TYPES.includes(mime)) {
+      setError(`Unsupported file type (${mime || 'unknown'}). Allowed formats: PNG, JPEG, WebP, SVG.`);
+      return;
+    }
+
+    setSelectedFile(file);
+    if (!importName.trim()) {
+      // Strip extension for clean default name
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+      setImportName(nameWithoutExt);
+    }
+
+    if (importPreviewUrl) {
+      URL.revokeObjectURL(importPreviewUrl);
+    }
+    const preview = URL.createObjectURL(file);
+    setImportPreviewUrl(preview);
+  };
+
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      setError('Please choose an image file.');
+      return;
+    }
+    const trimmedName = importName.trim();
+    if (!trimmedName) {
+      setError('Logo name cannot be empty.');
+      return;
+    }
+
+    setIsImporting(true);
+    setError(null);
+    try {
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const numberArray = Array.from(uint8Array);
+
+      const imported = await importLogo(
+        trimmedName,
+        selectedFile.type,
+        numberArray
+      );
+
+      // Reset import form
+      setSelectedFile(null);
+      setImportName('');
+      if (importPreviewUrl) {
+        URL.revokeObjectURL(importPreviewUrl);
+        setImportPreviewUrl(null);
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      await fetchLogos();
+      onLogosUpdated?.();
+
+      // If in picker mode, automatically select newly imported logo
+      if (onSelectLogo) {
+        onSelectLogo(imported.id);
+      }
+    } catch (err) {
+      const maybeErr = err as CommandError;
+      setError(maybeErr.message || 'Failed to import logo.');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleStartRename = (logo: LogoSummary) => {
+    setEditingLogoId(logo.id);
+    setEditingName(logo.name);
+    setDeletingLogoId(null);
+  };
+
+  const handleSaveRename = async (logoId: string) => {
+    const trimmed = editingName.trim();
+    if (!trimmed) return;
+
+    setIsRenaming(true);
+    setError(null);
+    try {
+      await renameLogo(logoId, trimmed);
+      setEditingLogoId(null);
+      setEditingName('');
+      await fetchLogos();
+      onLogosUpdated?.();
+    } catch (err) {
+      const maybeErr = err as CommandError;
+      setError(maybeErr.message || 'Failed to rename logo.');
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handleDelete = async (logoId: string) => {
+    setIsDeleting(true);
+    setError(null);
+    try {
+      await deleteLogo(logoId);
+      setDeletingLogoId(null);
+
+      // Clean up cached blob URL if deleted
+      if (blobUrlsRef.current[logoId]) {
+        URL.revokeObjectURL(blobUrlsRef.current[logoId]);
+        delete blobUrlsRef.current[logoId];
+      }
+
+      // If currently selected logo is deleted, unselect it
+      if (selectedLogoId === logoId && onSelectLogo) {
+        onSelectLogo(null);
+      }
+
+      await fetchLogos();
+      onLogosUpdated?.();
+    } catch (err) {
+      const maybeErr = err as CommandError;
+      setError(maybeErr.message || 'Failed to delete logo.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs">
+      <div
+        className="relative w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logo-manager-title"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
+          <div className="flex items-center gap-2">
+            <Image className="h-5 w-5 text-primary" />
+            <div>
+              <h2 id="logo-manager-title" className="text-base font-semibold text-foreground">
+                Logo Manager
+              </h2>
+              <p className="text-[11px] text-muted-foreground">
+                Import and organize brand icons stored in your encrypted vault.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground p-1 rounded-md transition-colors cursor-pointer"
+            aria-label="Close modal"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Global Error Banner */}
+        {error && (
+          <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setError(null)}
+              className="text-[10px] h-6 px-1.5"
+            >
+              Dismiss
+            </Button>
+          </div>
+        )}
+
+        {/* Import New Logo Accordion / Section */}
+        <form
+          onSubmit={handleImportSubmit}
+          className="rounded-xl border border-border/80 bg-background/60 p-3.5 mb-4 space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <Upload className="h-3.5 w-3.5 text-primary" />
+              Import Logo
+            </span>
+            <span className="text-[10px] text-muted-foreground font-mono">
+              Max 2 MB (PNG, JPEG, WebP, SVG)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            {/* File Input and Thumbnail Preview */}
+            <div className="sm:col-span-5 flex items-center gap-2.5">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={handleFileSelect}
+                className="hidden"
+                id="logo-file-input"
+              />
+              <label
+                htmlFor="logo-file-input"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-input hover:border-primary/50 bg-card hover:bg-muted/40 text-xs text-foreground cursor-pointer transition-colors"
+              >
+                <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="truncate max-w-[120px]">
+                  {selectedFile ? selectedFile.name : 'Choose file...'}
+                </span>
+              </label>
+
+              {importPreviewUrl && (
+                <div className="h-8 w-8 rounded-md border border-border bg-background p-0.5 flex items-center justify-center shrink-0">
+                  <img
+                    src={importPreviewUrl}
+                    alt="Preview"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Logo Name Input */}
+            <div className="sm:col-span-5">
+              <Input
+                placeholder="Logo display name (e.g. GitHub)..."
+                value={importName}
+                onChange={(e) => setImportName(e.target.value)}
+                disabled={isImporting}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            {/* Import Button */}
+            <div className="sm:col-span-2 flex justify-end">
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                loading={isImporting}
+                disabled={!selectedFile || !importName.trim()}
+                className="w-full h-8 text-xs gap-1"
+              >
+                <Check className="h-3.5 w-3.5" />
+                <span>Save</span>
+              </Button>
+            </div>
+          </div>
+        </form>
+
+        {/* Gallery Grid */}
+        <div className="flex-1 overflow-y-auto pr-1 min-h-[220px]">
+          {loading ? (
+            <div className="py-16 flex flex-col items-center justify-center gap-2 text-muted-foreground text-xs">
+              <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+              <span>Loading logos from encrypted vault...</span>
+            </div>
+          ) : logos.length === 0 ? (
+            <div className="py-16 text-center border border-dashed border-border rounded-xl flex flex-col items-center justify-center text-xs text-muted-foreground gap-2">
+              <Image className="h-8 w-8 text-muted-foreground/50" />
+              <p>No logos imported yet. Use the form above to add platform brand logos.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {logos.map((logo) => {
+                const isSelected = selectedLogoId === logo.id;
+                const previewUrl = logoUrls[logo.id];
+                const isEditingThis = editingLogoId === logo.id;
+                const isDeletingThis = deletingLogoId === logo.id;
+
+                if (isDeletingThis) {
+                  return (
+                    <div
+                      key={logo.id}
+                      className="rounded-xl border border-destructive/30 bg-destructive/10 p-2.5 flex flex-col justify-between text-xs space-y-2 animate-in fade-in"
+                    >
+                      <p className="text-[11px] text-destructive font-medium truncate">
+                        Delete &quot;{logo.name}&quot;?
+                      </p>
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          loading={isDeleting}
+                          onClick={() => handleDelete(logo.id)}
+                          className="h-6 px-2 text-[10px]"
+                        >
+                          Delete
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeletingLogoId(null)}
+                          className="h-6 px-2 text-[10px]"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={logo.id}
+                    onClick={() => onSelectLogo && onSelectLogo(isSelected ? null : logo.id)}
+                    className={`group relative rounded-xl border p-2.5 flex flex-col justify-between transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-primary bg-primary/5 shadow-xs ring-1 ring-primary'
+                        : 'border-border/80 hover:border-primary/40 bg-card hover:bg-muted/30'
+                    }`}
+                  >
+                    {/* Selected Badge */}
+                    {isSelected && (
+                      <div className="absolute top-2 right-2 text-primary" title="Currently selected">
+                        <CheckCircle2 className="h-4 w-4 fill-primary text-primary-foreground" />
+                      </div>
+                    )}
+
+                    {/* Image Thumbnail Container */}
+                    <div className="h-16 w-full flex items-center justify-center p-1.5 rounded-lg bg-background/80 border border-border/40 mb-2">
+                      {previewUrl ? (
+                        <img
+                          src={previewUrl}
+                          alt={logo.name}
+                          className="max-h-full max-w-full object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <Image className="h-6 w-6 text-muted-foreground/40 animate-pulse" />
+                      )}
+                    </div>
+
+                    {/* Name / Rename Input */}
+                    {isEditingThis ? (
+                      <div
+                        className="flex items-center gap-1 pt-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="text"
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          autoFocus
+                          className="w-full bg-background border border-input rounded px-1.5 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <button
+                          type="button"
+                          disabled={isRenaming || !editingName.trim()}
+                          onClick={() => handleSaveRename(logo.id)}
+                          className="p-1 rounded text-primary hover:bg-primary/10"
+                        >
+                          <Check className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingLogoId(null);
+                            setEditingName('');
+                          }}
+                          className="p-1 rounded text-muted-foreground hover:bg-muted"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center justify-between gap-1">
+                          <p
+                            className="text-xs font-semibold text-foreground truncate"
+                            title={logo.name}
+                          >
+                            {logo.name}
+                          </p>
+                          <div
+                            className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleStartRename(logo)}
+                              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                              title="Rename logo"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeletingLogoId(logo.id);
+                                setEditingLogoId(null);
+                              }}
+                              className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                              title="Delete logo"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                          {formatFileSize(logo.size_bytes)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground">
+            {selectedLogoId && onSelectLogo
+              ? 'Click the selected logo to unassign, or select another.'
+              : `${logos.length} logo${logos.length === 1 ? '' : 's'} stored`}
+          </span>
+          <div className="flex items-center gap-2">
+            {selectedLogoId && onSelectLogo && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectLogo(null)}
+                className="text-xs h-8"
+              >
+                Clear Logo
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={onClose}
+              className="text-xs h-8"
+            >
+              Done
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

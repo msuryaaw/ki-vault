@@ -5,6 +5,7 @@ import {
   createAccount,
   updateAccount,
   deleteAccount,
+  listTags,
 } from '../services/domain';
 import type {
   AccountSummary,
@@ -13,12 +14,15 @@ import type {
   SortOrder,
   CreateAccountInput,
   UpdateAccountInput,
+  Tag,
 } from '../types/domain';
 import type { CommandError } from '../types/vault';
 import { Button } from '../components/Button';
 import { AccountDetailModal } from '../components/AccountDetailModal';
 import { AccountFormModal } from '../components/AccountFormModal';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
+import { TagManagerModal } from '../components/TagManagerModal';
+import { PlatformLogo } from '../components/PlatformLogo';
 import {
   Users,
   Star,
@@ -32,6 +36,8 @@ import {
   ArrowUpDown,
   Plus,
   CheckCircle2,
+  Tag as TagIcon,
+  X,
 } from 'lucide-react';
 
 
@@ -65,11 +71,12 @@ export const AccountList: React.FC<AccountListProps> = ({
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedPlatformId, setSelectedPlatformId] = useState<string>('all');
+  const [selectedTagId, setSelectedTagId] = useState<string>('all');
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>('updated_at_desc');
   // Local favorite toggle (only active when not in forced favoriteOnlyMode)
   const [localFavoriteOnly, setLocalFavoriteOnly] = useState<boolean>(false);
-
-
 
   const effectiveFavoriteOnly = favoriteOnlyMode || localFavoriteOnly;
 
@@ -83,6 +90,16 @@ export const AccountList: React.FC<AccountListProps> = ({
     }
   }, []);
 
+  // Load tags for the tag filter dropdown
+  const loadTagsList = useCallback(async () => {
+    try {
+      const data = await listTags();
+      setTags(data);
+    } catch {
+      // Tag dropdown will simply be empty if tags fail to load
+    }
+  }, []);
+
   // Fetch accounts based on query, filters, and sort order
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
@@ -90,6 +107,7 @@ export const AccountList: React.FC<AccountListProps> = ({
     try {
       const trimmedQuery = searchQuery.trim();
       const platformFilter = selectedPlatformId === 'all' ? null : selectedPlatformId;
+      const tagFilter = selectedTagId === 'all' ? null : selectedTagId;
 
       let data: AccountSummary[];
       if (trimmedQuery.length > 0) {
@@ -98,16 +116,18 @@ export const AccountList: React.FC<AccountListProps> = ({
           trimmedQuery,
           {
             platform_id: platformFilter,
+            tag_id: tagFilter,
             favorite_only: effectiveFavoriteOnly ? true : null,
           },
           sortOrder
         );
       } else {
-        // Use listAccounts or searchAccounts with null query for sorting
+        // Use searchAccounts with null query for filtering and sorting
         data = await searchAccounts(
           '',
           {
             platform_id: platformFilter,
+            tag_id: tagFilter,
             favorite_only: effectiveFavoriteOnly ? true : null,
           },
           sortOrder
@@ -119,11 +139,12 @@ export const AccountList: React.FC<AccountListProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, selectedPlatformId, effectiveFavoriteOnly, sortOrder]);
+  }, [searchQuery, selectedPlatformId, selectedTagId, effectiveFavoriteOnly, sortOrder]);
 
   useEffect(() => {
     loadPlatformsList();
-  }, [loadPlatformsList]);
+    loadTagsList();
+  }, [loadPlatformsList, loadTagsList]);
 
   // Debounced search / query reload
   useEffect(() => {
@@ -235,6 +256,16 @@ export const AccountList: React.FC<AccountListProps> = ({
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setIsTagModalOpen(true)}
+            className="h-9 px-3 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <TagIcon className="h-3.5 w-3.5" />
+            Manage Tags
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchAccounts}
             disabled={loading}
             className="h-9 px-3 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
@@ -275,22 +306,32 @@ export const AccountList: React.FC<AccountListProps> = ({
       )}
 
 
-      {/* Controls Bar: Search, Platform Filter, Favorites Toggle, Sorting */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-card border border-border p-3.5 rounded-xl shadow-xs">
+      {/* Controls Bar: Search, Platform Filter, Tag Filter, Favorites Toggle, Sorting */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 bg-card border border-border p-3.5 rounded-xl shadow-xs">
         {/* Search Input */}
-        <div className="relative md:col-span-5">
+        <div className="relative sm:col-span-2 lg:col-span-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             placeholder="Search account name, username, email, platform..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-background border border-input rounded-lg pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+            className="w-full bg-background border border-input rounded-lg pl-9 pr-8 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer"
+              title="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Platform Filter */}
-        <div className="relative md:col-span-3">
+        <div className="relative lg:col-span-2">
           <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
             <Globe className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0" />
             <select
@@ -308,8 +349,27 @@ export const AccountList: React.FC<AccountListProps> = ({
           </div>
         </div>
 
+        {/* Tag Filter */}
+        <div className="relative lg:col-span-2">
+          <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
+            <TagIcon className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0" />
+            <select
+              value={selectedTagId}
+              onChange={(e) => setSelectedTagId(e.target.value)}
+              className="w-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
+            >
+              <option value="all">All Tags ({tags.length})</option>
+              {tags.map((t) => (
+                <option key={t.id} value={t.id}>
+                  #{t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {/* Sort Order */}
-        <div className="relative md:col-span-2">
+        <div className="relative lg:col-span-2">
           <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
             <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0" />
             <select
@@ -329,7 +389,7 @@ export const AccountList: React.FC<AccountListProps> = ({
 
         {/* Favorite toggle (only shown when not already locked into Favorites view) */}
         {!favoriteOnlyMode && (
-          <div className="md:col-span-2 flex items-center justify-end">
+          <div className="lg:col-span-2 flex items-center justify-end">
             <button
               onClick={() => setLocalFavoriteOnly(!localFavoriteOnly)}
               className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
@@ -370,25 +430,26 @@ export const AccountList: React.FC<AccountListProps> = ({
           <h3 className="text-sm font-semibold text-foreground">
             {effectiveFavoriteOnly
               ? 'No favorite accounts found'
-              : searchQuery.trim() || selectedPlatformId !== 'all'
+              : searchQuery.trim() || selectedPlatformId !== 'all' || selectedTagId !== 'all'
               ? 'No accounts match your search/filter criteria'
               : 'No accounts stored in this vault'}
           </h3>
           <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-5">
             {effectiveFavoriteOnly
               ? 'Mark accounts as favorite with the star icon to see them here.'
-              : searchQuery.trim() || selectedPlatformId !== 'all'
-              ? 'Try adjusting your search query or selecting a different platform.'
+              : searchQuery.trim() || selectedPlatformId !== 'all' || selectedTagId !== 'all'
+              ? 'Try adjusting your search query or selecting a different platform or tag.'
               : 'Add platforms and accounts to organize your passwords securely.'}
           </p>
 
-          {searchQuery.trim() || selectedPlatformId !== 'all' ? (
+          {searchQuery.trim() || selectedPlatformId !== 'all' || selectedTagId !== 'all' ? (
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
                 setSearchQuery('');
                 setSelectedPlatformId('all');
+                setSelectedTagId('all');
                 setLocalFavoriteOnly(false);
               }}
               className="text-xs h-8"
@@ -418,13 +479,19 @@ export const AccountList: React.FC<AccountListProps> = ({
               {/* Header: Title / Display Name & Star */}
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="space-y-0.5">
-                    <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
-                      {acc.display_name || acc.username || acc.email || 'Untitled Account'}
-                    </h3>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Globe className="h-3 w-3 text-muted-foreground/70" />
-                      <span>{acc.platform_name}</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <PlatformLogo
+                      logoId={platforms.find((p) => p.id === acc.platform_id)?.logo_id}
+                      platformName={acc.platform_name}
+                      size="sm"
+                    />
+                    <div className="space-y-0.5 min-w-0">
+                      <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                        {acc.display_name || acc.username || acc.email || 'Untitled Account'}
+                      </h3>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
+                        <span>{acc.platform_name}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -519,6 +586,16 @@ export const AccountList: React.FC<AccountListProps> = ({
         onClose={() => setDeletingAccount(null)}
         onConfirm={handleDeleteAccount}
         loading={actionLoading}
+      />
+
+      {/* Tag Manager Modal (Phase 7 Step 1) */}
+      <TagManagerModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        onTagsUpdated={() => {
+          loadTagsList();
+          fetchAccounts();
+        }}
       />
     </div>
   );

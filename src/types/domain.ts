@@ -250,4 +250,30 @@ export interface VaultSettings {
   password_generator: PasswordGeneratorSettings;
 }
 
+/**
+ * Full Logo entity stored in the SQLite database.
+ * Mirrors Rust `crate::logos::Logo`.
+ */
+export interface Logo {
+  id: string;
+  name: string;
+  mime_type: string;
+  image_data: number[];
+  created_at: number;
+  updated_at: number;
+}
+
+/**
+ * Lightweight Logo summary without raw image bytes.
+ * Mirrors Rust `crate::logos::LogoSummary`.
+ */
+export interface LogoSummary {
+  id: string;
+  name: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: number;
+  updated_at: number;
+}
+
 

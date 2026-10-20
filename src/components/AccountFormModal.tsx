@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type {
   PlatformSummary,
   AccountDetail,
   CreateAccountInput,
   UpdateAccountInput,
   CreateCustomFieldInput,
+  Tag,
 } from '../types/domain';
+import { listTags, createTag, assignTag, removeTag } from '../services/domain';
 import { Button } from './Button';
 import { Input } from './Input';
+import { TagSelector } from './TagSelector';
 import {
   User,
   Globe,
@@ -57,6 +60,10 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
   const [favorite, setFavorite] = useState(false);
   const [notes, setNotes] = useState('');
 
+  // Tags State
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+
   // Custom Fields (for creation)
   const [customFields, setCustomFields] = useState<CreateCustomFieldInput[]>([]);
 
@@ -64,6 +71,21 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
   const [clientError, setClientError] = useState<string | null>(null);
 
   const isEditing = Boolean(initialAccount);
+
+  const loadTags = useCallback(async () => {
+    try {
+      const tags = await listTags();
+      setAvailableTags(tags);
+    } catch {
+      // Non-critical background fetch failure
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadTags();
+    }
+  }, [isOpen, loadTags]);
 
   useEffect(() => {
     if (initialAccount) {
@@ -75,6 +97,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
       setPassword(''); // Password must not be pre-filled; only provided if changing
       setFavorite(initialAccount.account.is_favorite);
       setNotes(initialAccount.account.notes || '');
+      setSelectedTagIds(initialAccount.tags ? initialAccount.tags.map((t) => t.id) : []);
       setCustomFields([]); // Custom fields in edit mode are read-only from Step 5
     } else {
       setPlatformId(defaultPlatformId || (platforms.length > 0 ? platforms[0].id : ''));
@@ -85,10 +108,23 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
       setPassword('');
       setFavorite(false);
       setNotes('');
+      setSelectedTagIds([]);
       setCustomFields([]);
     }
     setClientError(null);
   }, [initialAccount, defaultPlatformId, platforms, isOpen]);
+
+  const handleCreateNewTag = async (name: string): Promise<Tag | null> => {
+    try {
+      const created = await createTag(name);
+      setAvailableTags((prev) => [...prev, created]);
+      return created;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create tag.';
+      setClientError(msg);
+      return null;
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -160,6 +196,18 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
         }
 
         await onSubmitUpdate(initialAccount.account.id, updatePayload);
+
+        // Reconcile tag assignments
+        const prevTagIds = initialAccount.tags ? initialAccount.tags.map((t) => t.id) : [];
+        const addedTags = selectedTagIds.filter((id) => !prevTagIds.includes(id));
+        const removedTags = prevTagIds.filter((id) => !selectedTagIds.includes(id));
+
+        for (const tagId of addedTags) {
+          await assignTag(initialAccount.account.id, tagId).catch(() => {});
+        }
+        for (const tagId of removedTags) {
+          await removeTag(initialAccount.account.id, tagId).catch(() => {});
+        }
       } else {
         const createPayload: CreateAccountInput = {
           platform_id: platformId,
@@ -170,7 +218,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           url: url.trim() || null,
           notes: notes.trim() || null,
           favorite,
-          tags: null,
+          tags: selectedTagIds.length > 0 ? selectedTagIds : null,
           custom_fields: customFields.length > 0 ? customFields : null,
         };
 
@@ -428,6 +476,17 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
               )}
             </div>
           )}
+
+          {/* Section: Tags */}
+          <div className="pt-1">
+            <TagSelector
+              availableTags={availableTags}
+              selectedTagIds={selectedTagIds}
+              onChange={setSelectedTagIds}
+              onCreateTag={handleCreateNewTag}
+              disabled={loading}
+            />
+          </div>
 
           {/* Section: Notes */}
           <div className="space-y-2">
