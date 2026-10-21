@@ -28,6 +28,49 @@ fn current_unix_timestamp() -> i64 {
         .unwrap_or(0)
 }
 
+// ─── Input length limits (api-contract.md §9) ─────────────────────────────────
+
+pub const MAX_LOGO_NAME_LEN: usize = 256;
+pub const MAX_MIME_LEN: usize = 100;
+pub const MAX_ID_LEN: usize = 64;
+
+fn validate_string_bound(
+    val: &str,
+    field_name: &str,
+    max_len: usize,
+    disallow_empty: bool,
+) -> std::result::Result<(), CommandError> {
+    if disallow_empty && val.trim().is_empty() {
+        return Err(CommandError::new(
+            "InvalidInput",
+            format!("{field_name} must not be empty."),
+        ));
+    }
+    if val.len() > max_len {
+        return Err(CommandError::new(
+            "InvalidInput",
+            format!("{field_name} exceeds maximum length of {max_len} bytes."),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_opt_string_bound(
+    opt: Option<&str>,
+    field_name: &str,
+    max_len: usize,
+) -> std::result::Result<(), CommandError> {
+    if let Some(val) = opt {
+        if val.len() > max_len {
+            return Err(CommandError::new(
+                "InvalidInput",
+                format!("{field_name} exceeds maximum length of {max_len} bytes."),
+            ));
+        }
+    }
+    Ok(())
+}
+
 // ─── Implementation functions (testable without Tauri State) ─────────────────
 
 pub fn import_logo_impl(
@@ -36,12 +79,8 @@ pub fn import_logo_impl(
     mime_type: String,
     image_data: Vec<u8>,
 ) -> std::result::Result<Logo, CommandError> {
-    if name.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Logo name must not be empty.",
-        ));
-    }
+    validate_string_bound(&name, "Logo name", MAX_LOGO_NAME_LEN, true)?;
+    validate_string_bound(&mime_type, "MIME type", MAX_MIME_LEN, true)?;
 
     let guard = state
         .0
@@ -88,12 +127,7 @@ pub fn get_logo_impl(
     state: &SharedVaultState,
     logo_id: String,
 ) -> std::result::Result<Logo, CommandError> {
-    if logo_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Logo ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&logo_id, "Logo ID", MAX_ID_LEN, true)?;
 
     let guard = state
         .0
@@ -116,19 +150,8 @@ pub fn rename_logo_impl(
     logo_id: String,
     new_name: String,
 ) -> std::result::Result<Logo, CommandError> {
-    if logo_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Logo ID must not be empty.",
-        ));
-    }
-
-    if new_name.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Logo name must not be empty.",
-        ));
-    }
+    validate_string_bound(&logo_id, "Logo ID", MAX_ID_LEN, true)?;
+    validate_string_bound(&new_name, "Logo name", MAX_LOGO_NAME_LEN, true)?;
 
     let guard = state
         .0
@@ -153,12 +176,8 @@ pub fn replace_logo_impl(
     new_mime_type: String,
     new_image_data: Vec<u8>,
 ) -> std::result::Result<Logo, CommandError> {
-    if logo_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Logo ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&logo_id, "Logo ID", MAX_ID_LEN, true)?;
+    validate_string_bound(&new_mime_type, "MIME type", MAX_MIME_LEN, true)?;
 
     let guard = state
         .0
@@ -186,12 +205,7 @@ pub fn delete_logo_impl(
     state: &SharedVaultState,
     logo_id: String,
 ) -> std::result::Result<(), CommandError> {
-    if logo_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Logo ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&logo_id, "Logo ID", MAX_ID_LEN, true)?;
 
     let guard = state
         .0
@@ -214,12 +228,8 @@ pub fn assign_logo_impl(
     platform_id: String,
     logo_id: Option<String>,
 ) -> std::result::Result<(), CommandError> {
-    if platform_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Platform ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&platform_id, "Platform ID", MAX_ID_LEN, true)?;
+    validate_opt_string_bound(logo_id.as_deref(), "Logo ID", MAX_ID_LEN)?;
 
     let guard = state
         .0
@@ -466,5 +476,53 @@ mod tests {
                 assert_eq!(p.logo_id, None);
             }
         }
+    }
+
+    #[test]
+    fn test_logo_input_length_validation() {
+        let state = build_unlocked_shared_state();
+        let valid_png = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00];
+
+        // 1. Empty logo name disallowed
+        let err =
+            import_logo_impl(&state, "".into(), "image/png".into(), valid_png.clone()).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Logo name must not be empty"));
+
+        let err = import_logo_impl(&state, "   ".into(), "image/png".into(), valid_png.clone())
+            .unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Logo name must not be empty"));
+
+        // 2. Exact maximum logo name (256 bytes) allowed
+        let exact_name = "l".repeat(MAX_LOGO_NAME_LEN);
+        let logo = import_logo_impl(
+            &state,
+            exact_name.clone(),
+            "image/png".into(),
+            valid_png.clone(),
+        )
+        .unwrap();
+        assert_eq!(logo.name, exact_name);
+
+        // 3. Exceeding logo name (257 bytes) disallowed
+        let over_name = "l".repeat(MAX_LOGO_NAME_LEN + 1);
+        let err =
+            import_logo_impl(&state, over_name, "image/png".into(), valid_png.clone()).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Logo name exceeds maximum length"));
+
+        // 4. MIME length boundary (100 bytes allowed, 101 bytes rejected)
+        let over_mime = "m".repeat(MAX_MIME_LEN + 1);
+        let err =
+            import_logo_impl(&state, "ValidName".into(), over_mime, valid_png.clone()).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("MIME type exceeds maximum length"));
+
+        // 5. Logo ID bound on rename
+        let over_id = "i".repeat(MAX_ID_LEN + 1);
+        let err = rename_logo_impl(&state, over_id, "NewName".into()).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Logo ID exceeds maximum length"));
     }
 }

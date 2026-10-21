@@ -30,6 +30,168 @@ fn current_unix_timestamp() -> i64 {
         .unwrap_or(0)
 }
 
+// ─── Input length limits (api-contract.md §4, §5, §8) ─────────────────────────
+
+pub const MAX_PLATFORM_NAME_LEN: usize = 256;
+pub const MAX_CATEGORY_LEN: usize = 100;
+pub const MAX_URL_LEN: usize = 2048;
+pub const MAX_ID_LEN: usize = 64;
+pub const MAX_ACCOUNT_NAME_LEN: usize = 256;
+pub const MAX_PASSWORD_LEN: usize = 1024;
+pub const MAX_NOTES_LEN: usize = 10000;
+pub const MAX_TAG_NAME_LEN: usize = 100;
+pub const MAX_CUSTOM_FIELD_NAME_LEN: usize = 256;
+pub const MAX_CUSTOM_FIELD_VALUE_LEN: usize = 4096;
+pub const MAX_CUSTOM_FIELD_TYPE_LEN: usize = 50;
+
+fn validate_string_bound(
+    val: &str,
+    field_name: &str,
+    max_len: usize,
+    disallow_empty: bool,
+) -> std::result::Result<(), CommandError> {
+    if disallow_empty && val.trim().is_empty() {
+        return Err(CommandError::new(
+            "InvalidInput",
+            format!("{field_name} must not be empty."),
+        ));
+    }
+    if val.len() > max_len {
+        return Err(CommandError::new(
+            "InvalidInput",
+            format!("{field_name} exceeds maximum length of {max_len} bytes."),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_opt_string_bound(
+    opt: Option<&str>,
+    field_name: &str,
+    max_len: usize,
+) -> std::result::Result<(), CommandError> {
+    if let Some(val) = opt {
+        if val.len() > max_len {
+            return Err(CommandError::new(
+                "InvalidInput",
+                format!("{field_name} exceeds maximum length of {max_len} bytes."),
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub fn validate_create_platform_input(
+    name: &str,
+    category: Option<&str>,
+    website: Option<&str>,
+    logo_id: Option<&str>,
+) -> std::result::Result<(), CommandError> {
+    validate_string_bound(name, "Platform name", MAX_PLATFORM_NAME_LEN, true)?;
+    validate_opt_string_bound(category, "Category", MAX_CATEGORY_LEN)?;
+    validate_opt_string_bound(website, "Website", MAX_URL_LEN)?;
+    validate_opt_string_bound(logo_id, "Logo ID", MAX_ID_LEN)?;
+    Ok(())
+}
+
+pub fn validate_update_platform_input(
+    platform_id: &str,
+    params: &UpdatePlatformParams,
+) -> std::result::Result<(), CommandError> {
+    validate_string_bound(platform_id, "Platform ID", MAX_ID_LEN, true)?;
+    if let Some(ref n) = params.name {
+        validate_string_bound(n, "Platform name", MAX_PLATFORM_NAME_LEN, true)?;
+    }
+    if let Some(Some(ref cat)) = params.category {
+        validate_string_bound(cat, "Category", MAX_CATEGORY_LEN, false)?;
+    }
+    if let Some(Some(ref web)) = params.website {
+        validate_string_bound(web, "Website", MAX_URL_LEN, false)?;
+    }
+    if let Some(Some(ref logo)) = params.logo_id {
+        validate_string_bound(logo, "Logo ID", MAX_ID_LEN, false)?;
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn validate_create_account_input(
+    platform_id: &str,
+    display_name: Option<&str>,
+    username: Option<&str>,
+    email: Option<&str>,
+    password: Option<&str>,
+    url: Option<&str>,
+    notes: Option<&str>,
+    tags: Option<&[String]>,
+    custom_fields: Option<&[CreateCustomFieldParamsInput]>,
+) -> std::result::Result<(), CommandError> {
+    validate_string_bound(platform_id, "Platform ID", MAX_ID_LEN, true)?;
+    validate_opt_string_bound(display_name, "Display name", MAX_ACCOUNT_NAME_LEN)?;
+    validate_opt_string_bound(username, "Username", MAX_ACCOUNT_NAME_LEN)?;
+    validate_opt_string_bound(email, "Email", MAX_ACCOUNT_NAME_LEN)?;
+    validate_opt_string_bound(password, "Password", MAX_PASSWORD_LEN)?;
+    validate_opt_string_bound(url, "URL", MAX_URL_LEN)?;
+    validate_opt_string_bound(notes, "Notes", MAX_NOTES_LEN)?;
+
+    if let Some(tags_list) = tags {
+        for tag_id in tags_list {
+            validate_string_bound(tag_id, "Tag ID", MAX_ID_LEN, true)?;
+        }
+    }
+
+    if let Some(cfs) = custom_fields {
+        for cf in cfs {
+            validate_string_bound(
+                &cf.field_name,
+                "Custom field name",
+                MAX_CUSTOM_FIELD_NAME_LEN,
+                true,
+            )?;
+            validate_string_bound(
+                &cf.field_value,
+                "Custom field value",
+                MAX_CUSTOM_FIELD_VALUE_LEN,
+                false,
+            )?;
+            if let Some(ref ft) = cf.field_type {
+                validate_string_bound(ft, "Custom field type", MAX_CUSTOM_FIELD_TYPE_LEN, false)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub fn validate_update_account_input(
+    account_id: &str,
+    fields: &UpdateAccountParams,
+) -> std::result::Result<(), CommandError> {
+    validate_string_bound(account_id, "Account ID", MAX_ID_LEN, true)?;
+    if let Some(ref pid) = fields.platform_id {
+        validate_string_bound(pid, "Platform ID", MAX_ID_LEN, true)?;
+    }
+    if let Some(Some(ref dn)) = fields.display_name {
+        validate_string_bound(dn, "Display name", MAX_ACCOUNT_NAME_LEN, false)?;
+    }
+    if let Some(Some(ref u)) = fields.username {
+        validate_string_bound(u, "Username", MAX_ACCOUNT_NAME_LEN, false)?;
+    }
+    if let Some(Some(ref em)) = fields.email {
+        validate_string_bound(em, "Email", MAX_ACCOUNT_NAME_LEN, false)?;
+    }
+    if let Some(Some(ref pw)) = fields.password {
+        validate_string_bound(pw, "Password", MAX_PASSWORD_LEN, false)?;
+    }
+    if let Some(Some(ref url)) = fields.url {
+        validate_string_bound(url, "URL", MAX_URL_LEN, false)?;
+    }
+    if let Some(Some(ref notes)) = fields.notes {
+        validate_string_bound(notes, "Notes", MAX_NOTES_LEN, false)?;
+    }
+    Ok(())
+}
+
 // ─── Platform Commands (api-contract.md §4) ───────────────────────────────────
 
 /// `create_platform` command (api-contract.md §4).
@@ -41,6 +203,12 @@ pub fn create_platform(
     website: Option<String>,
     logo_id: Option<String>,
 ) -> std::result::Result<Platform, CommandError> {
+    validate_create_platform_input(
+        &name,
+        category.as_deref(),
+        website.as_deref(),
+        logo_id.as_deref(),
+    )?;
     let guard = lock_state(&state)?;
     match &*guard {
         VaultState::Unlocked { vault, .. } => {
@@ -85,12 +253,7 @@ pub fn get_platform(
     state: State<'_, SharedVaultState>,
     platform_id: String,
 ) -> std::result::Result<Platform, CommandError> {
-    if platform_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Platform ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&platform_id, "Platform ID", MAX_ID_LEN, true)?;
 
     let guard = lock_state(&state)?;
     match &*guard {
@@ -115,23 +278,18 @@ pub fn update_platform(
     website: Option<Option<String>>,
     logo_id: Option<Option<String>>,
 ) -> std::result::Result<Platform, CommandError> {
-    if platform_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Platform ID must not be empty.",
-        ));
-    }
+    let params = UpdatePlatformParams {
+        name,
+        category,
+        website,
+        logo_id,
+    };
+    validate_update_platform_input(&platform_id, &params)?;
 
     let guard = lock_state(&state)?;
     match &*guard {
         VaultState::Unlocked { vault, .. } => {
             let repo = PlatformRepository::new(&vault.db);
-            let params = UpdatePlatformParams {
-                name,
-                category,
-                website,
-                logo_id,
-            };
             repo.update(&platform_id, params, current_unix_timestamp())
                 .map_err(map_error)
         }
@@ -151,12 +309,7 @@ pub fn delete_platform(
     platform_id: String,
     confirmation_token: String,
 ) -> std::result::Result<(), CommandError> {
-    if platform_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Platform ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&platform_id, "Platform ID", MAX_ID_LEN, true)?;
 
     if confirmation_token != platform_id {
         return Err(CommandError::new(
@@ -196,12 +349,17 @@ pub fn create_account(
     tags: Option<Vec<String>>,
     custom_fields: Option<Vec<CreateCustomFieldParamsInput>>,
 ) -> std::result::Result<AccountDetail, CommandError> {
-    if platform_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Platform ID must not be empty.",
-        ));
-    }
+    validate_create_account_input(
+        &platform_id,
+        display_name.as_deref(),
+        username.as_deref(),
+        email.as_deref(),
+        password.as_deref(),
+        url.as_deref(),
+        notes.as_deref(),
+        tags.as_deref(),
+        custom_fields.as_deref(),
+    )?;
 
     let guard = lock_state(&state)?;
     match &*guard {
@@ -237,6 +395,9 @@ pub fn list_accounts(
     favorite_only: Option<bool>,
     tag_id: Option<String>,
 ) -> std::result::Result<Vec<AccountSummary>, CommandError> {
+    validate_opt_string_bound(platform_id.as_deref(), "Platform ID", MAX_ID_LEN)?;
+    validate_opt_string_bound(tag_id.as_deref(), "Tag ID", MAX_ID_LEN)?;
+
     let guard = lock_state(&state)?;
     match &*guard {
         VaultState::Unlocked { vault, .. } => {
@@ -269,6 +430,11 @@ pub fn search_accounts(
             "Search query cannot exceed 1024 characters.",
         ));
     }
+    if let Some(ref f) = filters {
+        validate_opt_string_bound(f.platform_id.as_deref(), "Platform ID", MAX_ID_LEN)?;
+        validate_opt_string_bound(f.tag_id.as_deref(), "Tag ID", MAX_ID_LEN)?;
+        validate_opt_string_bound(f.category.as_deref(), "Category", MAX_CATEGORY_LEN)?;
+    }
 
     let guard = lock_state(&state)?;
     match &*guard {
@@ -289,12 +455,7 @@ pub fn get_account_detail(
     state: State<'_, SharedVaultState>,
     account_id: String,
 ) -> std::result::Result<AccountDetail, CommandError> {
-    if account_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Account ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&account_id, "Account ID", MAX_ID_LEN, true)?;
 
     let guard = lock_state(&state)?;
     match &*guard {
@@ -316,12 +477,7 @@ pub fn update_account(
     account_id: String,
     fields: UpdateAccountParams,
 ) -> std::result::Result<Account, CommandError> {
-    if account_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Account ID must not be empty.",
-        ));
-    }
+    validate_update_account_input(&account_id, &fields)?;
 
     let guard = lock_state(&state)?;
     match &*guard {
@@ -343,12 +499,7 @@ pub fn delete_account(
     state: State<'_, SharedVaultState>,
     account_id: String,
 ) -> std::result::Result<(), CommandError> {
-    if account_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Account ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&account_id, "Account ID", MAX_ID_LEN, true)?;
 
     let guard = lock_state(&state)?;
     match &*guard {
@@ -371,6 +522,8 @@ pub fn create_tag(
     state: State<'_, SharedVaultState>,
     name: String,
 ) -> std::result::Result<Tag, CommandError> {
+    validate_string_bound(&name, "Tag name", MAX_TAG_NAME_LEN, true)?;
+
     let guard = lock_state(&state)?;
     match &*guard {
         VaultState::Unlocked { vault, .. } => {
@@ -410,12 +563,8 @@ pub fn rename_tag(
     tag_id: String,
     name: String,
 ) -> std::result::Result<Tag, CommandError> {
-    if tag_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Tag ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&tag_id, "Tag ID", MAX_ID_LEN, true)?;
+    validate_string_bound(&name, "Tag name", MAX_TAG_NAME_LEN, true)?;
 
     let guard = lock_state(&state)?;
     match &*guard {
@@ -436,12 +585,7 @@ pub fn delete_tag(
     state: State<'_, SharedVaultState>,
     tag_id: String,
 ) -> std::result::Result<(), CommandError> {
-    if tag_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Tag ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&tag_id, "Tag ID", MAX_ID_LEN, true)?;
 
     let guard = lock_state(&state)?;
     match &*guard {
@@ -463,12 +607,8 @@ pub fn assign_tag(
     account_id: String,
     tag_id: String,
 ) -> std::result::Result<(), CommandError> {
-    if account_id.trim().is_empty() || tag_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Account ID and Tag ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&account_id, "Account ID", MAX_ID_LEN, true)?;
+    validate_string_bound(&tag_id, "Tag ID", MAX_ID_LEN, true)?;
 
     let guard = lock_state(&state)?;
     match &*guard {
@@ -491,12 +631,8 @@ pub fn remove_tag(
     account_id: String,
     tag_id: String,
 ) -> std::result::Result<(), CommandError> {
-    if account_id.trim().is_empty() || tag_id.trim().is_empty() {
-        return Err(CommandError::new(
-            "InvalidInput",
-            "Account ID and Tag ID must not be empty.",
-        ));
-    }
+    validate_string_bound(&account_id, "Account ID", MAX_ID_LEN, true)?;
+    validate_string_bound(&tag_id, "Tag ID", MAX_ID_LEN, true)?;
 
     let guard = lock_state(&state)?;
     match &*guard {
@@ -656,6 +792,12 @@ mod tests {
         website: Option<String>,
         logo_id: Option<String>,
     ) -> std::result::Result<Platform, CommandError> {
+        validate_create_platform_input(
+            &name,
+            category.as_deref(),
+            website.as_deref(),
+            logo_id.as_deref(),
+        )?;
         let guard = shared.0.lock().unwrap();
         match &*guard {
             VaultState::Unlocked { vault, .. } => {
@@ -693,6 +835,7 @@ mod tests {
         platform_id: String,
         confirmation_token: String,
     ) -> std::result::Result<(), CommandError> {
+        validate_string_bound(&platform_id, "Platform ID", MAX_ID_LEN, true)?;
         if confirmation_token != platform_id {
             return Err(CommandError::new("InvalidInput", "Token mismatch"));
         }
@@ -710,6 +853,7 @@ mod tests {
         shared: &SharedVaultState,
         name: String,
     ) -> std::result::Result<Tag, CommandError> {
+        validate_string_bound(&name, "Tag name", MAX_TAG_NAME_LEN, true)?;
         let guard = shared.0.lock().unwrap();
         match &*guard {
             VaultState::Unlocked { vault, .. } => {
@@ -735,6 +879,17 @@ mod tests {
         tags: Option<Vec<String>>,
         custom_fields: Option<Vec<CreateCustomFieldParamsInput>>,
     ) -> std::result::Result<AccountDetail, CommandError> {
+        validate_create_account_input(
+            &platform_id,
+            display_name.as_deref(),
+            username.as_deref(),
+            email.as_deref(),
+            password.as_deref(),
+            url.as_deref(),
+            notes.as_deref(),
+            tags.as_deref(),
+            custom_fields.as_deref(),
+        )?;
         let guard = shared.0.lock().unwrap();
         match &*guard {
             VaultState::Unlocked { vault, .. } => {
@@ -810,5 +965,432 @@ mod tests {
         let err = search_accounts_impl(&shared, long_query, None, None).unwrap_err();
         assert_eq!(err.code, "InvalidInput");
         assert!(err.message.contains("cannot exceed 1024"));
+    }
+
+    #[test]
+    fn test_platform_input_length_validation() {
+        let shared = build_unlocked_shared_state();
+
+        // 1. Empty platform name disallowed
+        let err = create_platform_impl(&shared, "".into(), None, None, None).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Platform name must not be empty"));
+
+        let err = create_platform_impl(&shared, "   ".into(), None, None, None).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Platform name must not be empty"));
+
+        // 2. Exact maximum platform name (256 bytes) allowed
+        let exact_name = "p".repeat(MAX_PLATFORM_NAME_LEN);
+        let p = create_platform_impl(&shared, exact_name.clone(), None, None, None).unwrap();
+        assert_eq!(p.name, exact_name);
+
+        // 3. Exceeding platform name (257 bytes) disallowed
+        let over_name = "p".repeat(MAX_PLATFORM_NAME_LEN + 1);
+        let err = create_platform_impl(&shared, over_name, None, None, None).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Platform name exceeds maximum length"));
+
+        // 4. Category boundary (100 bytes allowed, 101 bytes rejected)
+        let exact_cat = "c".repeat(MAX_CATEGORY_LEN);
+        let p2 = create_platform_impl(
+            &shared,
+            "ValidCatPlatform".into(),
+            Some(exact_cat.clone()),
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(p2.category, Some(exact_cat));
+
+        let over_cat = "c".repeat(MAX_CATEGORY_LEN + 1);
+        let err = create_platform_impl(
+            &shared,
+            "OverCatPlatform".into(),
+            Some(over_cat),
+            None,
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Category exceeds maximum length"));
+
+        // 5. Website URL boundary (2048 bytes allowed, 2049 bytes rejected)
+        let exact_url = format!("https://example.com/{}", "x".repeat(MAX_URL_LEN - 20));
+        assert_eq!(exact_url.len(), MAX_URL_LEN);
+        let p3 = create_platform_impl(
+            &shared,
+            "ValidUrlPlatform".into(),
+            None,
+            Some(exact_url.clone()),
+            None,
+        )
+        .unwrap();
+        assert_eq!(p3.website, Some(exact_url));
+
+        let over_url = format!("https://example.com/{}", "x".repeat(MAX_URL_LEN - 19));
+        assert_eq!(over_url.len(), MAX_URL_LEN + 1);
+        let err = create_platform_impl(
+            &shared,
+            "OverUrlPlatform".into(),
+            None,
+            Some(over_url),
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Website exceeds maximum length"));
+
+        // 6. Platform ID bound on update
+        let over_id = "i".repeat(MAX_ID_LEN + 1);
+        let update_params = UpdatePlatformParams {
+            name: Some("NewName".into()),
+            category: None,
+            website: None,
+            logo_id: None,
+        };
+        let err = validate_update_platform_input(&over_id, &update_params).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Platform ID exceeds maximum length"));
+    }
+
+    #[test]
+    fn test_account_and_custom_field_input_length_validation() {
+        let shared = build_unlocked_shared_state();
+        let p =
+            create_platform_impl(&shared, "AccountTestPlatform".into(), None, None, None).unwrap();
+
+        // 1. Empty platform ID disallowed
+        let err = create_account_impl(
+            &shared,
+            "".into(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            false,
+            None,
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Platform ID must not be empty"));
+
+        // 2. Normal account creation allowed
+        let acc = create_account_impl(
+            &shared,
+            p.id.clone(),
+            Some("Personal".into()),
+            Some("user1".into()),
+            Some("user1@example.com".into()),
+            Some("secret123".into()),
+            Some("https://example.com".into()),
+            Some("Some notes".into()),
+            false,
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(acc.account.username, Some("user1".into()));
+
+        // 3. Username boundary (256 allowed, 257 rejected)
+        let exact_user = "u".repeat(MAX_ACCOUNT_NAME_LEN);
+        let acc_max = create_account_impl(
+            &shared,
+            p.id.clone(),
+            None,
+            Some(exact_user.clone()),
+            None,
+            None,
+            None,
+            None,
+            false,
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(acc_max.account.username, Some(exact_user));
+
+        let over_user = "u".repeat(MAX_ACCOUNT_NAME_LEN + 1);
+        let err = create_account_impl(
+            &shared,
+            p.id.clone(),
+            None,
+            Some(over_user),
+            None,
+            None,
+            None,
+            None,
+            false,
+            None,
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Username exceeds maximum length"));
+
+        // 4. Password boundary (1024 allowed, 1025 rejected)
+        let exact_pw = "p".repeat(MAX_PASSWORD_LEN);
+        let acc_pw = create_account_impl(
+            &shared,
+            p.id.clone(),
+            None,
+            None,
+            None,
+            Some(exact_pw),
+            None,
+            None,
+            false,
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(acc_pw.account.platform_id, p.id);
+
+        let over_pw = "p".repeat(MAX_PASSWORD_LEN + 1);
+        let err = create_account_impl(
+            &shared,
+            p.id.clone(),
+            None,
+            None,
+            None,
+            Some(over_pw),
+            None,
+            None,
+            false,
+            None,
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Password exceeds maximum length"));
+
+        // 5. Notes boundary (10000 allowed, 10001 rejected)
+        let exact_notes = "n".repeat(MAX_NOTES_LEN);
+        let acc_notes = create_account_impl(
+            &shared,
+            p.id.clone(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(exact_notes),
+            false,
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(acc_notes.account.platform_id, p.id);
+
+        let over_notes = "n".repeat(MAX_NOTES_LEN + 1);
+        let err = create_account_impl(
+            &shared,
+            p.id.clone(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(over_notes),
+            false,
+            None,
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Notes exceeds maximum length"));
+
+        // 6. Custom fields boundary (name <= 256, value <= 4096)
+        let exact_cf_name = "k".repeat(MAX_CUSTOM_FIELD_NAME_LEN);
+        let exact_cf_val = "v".repeat(MAX_CUSTOM_FIELD_VALUE_LEN);
+        let acc_cf = create_account_impl(
+            &shared,
+            p.id.clone(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            false,
+            None,
+            Some(vec![CreateCustomFieldParamsInput {
+                field_name: exact_cf_name,
+                field_value: exact_cf_val,
+                field_type: Some("text".into()),
+                is_sensitive: Some(false),
+            }]),
+        )
+        .unwrap();
+        assert_eq!(acc_cf.custom_fields.len(), 1);
+
+        // Custom field empty name disallowed
+        let err = create_account_impl(
+            &shared,
+            p.id.clone(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            false,
+            None,
+            Some(vec![CreateCustomFieldParamsInput {
+                field_name: "  ".into(),
+                field_value: "val".into(),
+                field_type: None,
+                is_sensitive: None,
+            }]),
+        )
+        .unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Custom field name must not be empty"));
+
+        // Custom field exceeding value disallowed
+        let over_cf_val = "v".repeat(MAX_CUSTOM_FIELD_VALUE_LEN + 1);
+        let err = create_account_impl(
+            &shared,
+            p.id.clone(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            false,
+            None,
+            Some(vec![CreateCustomFieldParamsInput {
+                field_name: "valid_name".into(),
+                field_value: over_cf_val,
+                field_type: None,
+                is_sensitive: None,
+            }]),
+        )
+        .unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err
+            .message
+            .contains("Custom field value exceeds maximum length"));
+    }
+
+    #[test]
+    fn test_tag_input_length_validation() {
+        let shared = build_unlocked_shared_state();
+
+        // 1. Empty tag name disallowed
+        let err = create_tag_impl(&shared, "".into()).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Tag name must not be empty"));
+
+        let err = create_tag_impl(&shared, "   ".into()).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Tag name must not be empty"));
+
+        // 2. Exact maximum tag name (100 bytes) allowed
+        let exact_tag = "t".repeat(MAX_TAG_NAME_LEN);
+        let tag = create_tag_impl(&shared, exact_tag.clone()).unwrap();
+        assert_eq!(tag.name, exact_tag);
+
+        // 3. Exceeding tag name (101 bytes) disallowed
+        let over_tag = "t".repeat(MAX_TAG_NAME_LEN + 1);
+        let err = create_tag_impl(&shared, over_tag).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err.message.contains("Tag name exceeds maximum length"));
+    }
+
+    #[test]
+    fn test_unicode_multibyte_input_length_validation() {
+        let shared = build_unlocked_shared_state();
+
+        // 1. Tag name with 3-byte CJK character '日' (U+65E5 = 3 bytes in UTF-8)
+        // 33 characters * 3 bytes = 99 bytes (allowed: <= 100 bytes)
+        let exact_under_tag = "日".repeat(33);
+        assert_eq!(exact_under_tag.chars().count(), 33);
+        assert_eq!(exact_under_tag.len(), 99);
+        let tag = create_tag_impl(&shared, exact_under_tag.clone()).unwrap();
+        assert_eq!(tag.name, exact_under_tag);
+
+        // 34 characters is only 34 graphemes/chars, but 34 * 3 = 102 bytes (> 100 bytes)
+        let over_tag = "日".repeat(34);
+        assert_eq!(over_tag.chars().count(), 34);
+        assert_eq!(over_tag.len(), 102);
+        let err = create_tag_impl(&shared, over_tag).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err
+            .message
+            .contains("Tag name exceeds maximum length of 100 bytes"));
+
+        // 99 bytes of '日' (33 chars) + 1 byte ASCII 'a' = exact 100 bytes (allowed)
+        let exact_100_tag = format!("{}a", "日".repeat(33));
+        assert_eq!(exact_100_tag.len(), MAX_TAG_NAME_LEN);
+        let tag_100 = create_tag_impl(&shared, exact_100_tag.clone()).unwrap();
+        assert_eq!(tag_100.name, exact_100_tag);
+
+        // 2. Platform name with 4-byte Emoji '🔒' (U+1F512 = 4 bytes in UTF-8)
+        // 64 emojis = only 64 characters, but 64 * 4 = 256 bytes (exact maximum: allowed)
+        let exact_256_platform = "🔒".repeat(64);
+        assert_eq!(exact_256_platform.chars().count(), 64);
+        assert_eq!(exact_256_platform.len(), MAX_PLATFORM_NAME_LEN);
+        let p =
+            create_platform_impl(&shared, exact_256_platform.clone(), None, None, None).unwrap();
+        assert_eq!(p.name, exact_256_platform);
+
+        // 65 emojis = only 65 characters, but 65 * 4 = 260 bytes (> 256 bytes: rejected)
+        let over_256_platform = "🔒".repeat(65);
+        assert_eq!(over_256_platform.chars().count(), 65);
+        assert_eq!(over_256_platform.len(), 260);
+        let err = create_platform_impl(&shared, over_256_platform, None, None, None).unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err
+            .message
+            .contains("Platform name exceeds maximum length of 256 bytes"));
+
+        // 3. Account username with 2-byte Cyrillic 'д' (U+0434 = 2 bytes in UTF-8)
+        // 128 chars * 2 = 256 bytes (exact maximum: allowed)
+        let exact_256_user = "д".repeat(128);
+        assert_eq!(exact_256_user.chars().count(), 128);
+        assert_eq!(exact_256_user.len(), MAX_ACCOUNT_NAME_LEN);
+        let acc = create_account_impl(
+            &shared,
+            p.id.clone(),
+            None,
+            Some(exact_256_user.clone()),
+            None,
+            None,
+            None,
+            None,
+            false,
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(acc.account.username, Some(exact_256_user));
+
+        // 129 chars = 258 bytes (> 256 bytes: rejected)
+        let over_256_user = "д".repeat(129);
+        assert_eq!(over_256_user.chars().count(), 129);
+        assert_eq!(over_256_user.len(), 258);
+        let err = create_account_impl(
+            &shared,
+            p.id,
+            None,
+            Some(over_256_user),
+            None,
+            None,
+            None,
+            None,
+            false,
+            None,
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(err.code, "InvalidInput");
+        assert!(err
+            .message
+            .contains("Username exceeds maximum length of 256 bytes"));
     }
 }
