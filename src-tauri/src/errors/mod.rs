@@ -146,6 +146,27 @@ pub enum DatabaseError {
     Conflict(String),
 }
 
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum BackupError {
+    #[error("Invalid backup path: {0}")]
+    InvalidPath(String),
+
+    #[error("Backup file is not a valid KiVault container: {0}")]
+    InvalidContainer(String),
+
+    #[error("Backup authentication failed: incorrect password or corrupted backup")]
+    AuthenticationFailed,
+
+    #[error("Backup creation failed: {0}")]
+    CreationFailed(String),
+
+    #[error("Restore failed: {0}")]
+    RestoreFailed(String),
+
+    #[error("Restore requires explicit confirmation")]
+    ConfirmationRequired,
+}
+
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Crypto error: {0}")]
@@ -159,6 +180,9 @@ pub enum AppError {
 
     #[error("Database error: {0}")]
     Database(#[from] DatabaseError),
+
+    #[error("Backup error: {0}")]
+    Backup(#[from] BackupError),
 }
 
 impl From<rusqlite::Error> for AppError {

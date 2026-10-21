@@ -39,6 +39,8 @@ fn main() {
         "replace_logo",
         "delete_logo",
         "assign_logo",
+        "create_backup",
+        "restore_backup",
     ]);
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))
         .expect("failed to run tauri-build");

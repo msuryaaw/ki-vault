@@ -12,6 +12,7 @@
     "core:resources:default",
     "core:menu:default",
     "core:tray:default",
+    "dialog:default",
     "allow-create-vault",
     "allow-unlock-vault",
     "allow-lock-vault",
@@ -50,6 +51,8 @@
     "allow-rename-logo",
     "allow-replace-logo",
     "allow-delete-logo",
-    "allow-assign-logo"
+    "allow-assign-logo",
+    "allow-create-backup",
+    "allow-restore-backup"
   ]
 }

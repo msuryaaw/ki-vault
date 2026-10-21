@@ -233,6 +233,24 @@ pub(crate) fn map_error(err: AppError) -> CommandError {
                 }
             }
         }
+        AppError::Backup(ref e) => {
+            use crate::errors::BackupError;
+            match e {
+                BackupError::InvalidPath(_) | BackupError::ConfirmationRequired => {
+                    CommandError::new("InvalidInput", e.to_string())
+                }
+                BackupError::InvalidContainer(_) => {
+                    CommandError::new("IntegrityFailure", e.to_string())
+                }
+                BackupError::AuthenticationFailed => CommandError::new(
+                    "AuthenticationFailed",
+                    "Incorrect backup master password or corrupted backup file.",
+                ),
+                BackupError::CreationFailed(_) | BackupError::RestoreFailed(_) => {
+                    CommandError::new("BackupFailure", e.to_string())
+                }
+            }
+        }
     }
 }
 

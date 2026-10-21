@@ -14,6 +14,7 @@ pub mod settings;
 pub mod tags;
 pub mod vault;
 
+use commands::backup::{create_backup, restore_backup};
 use commands::domain::{
     assign_tag, create_account, create_platform, create_tag, delete_account, delete_platform,
     delete_tag, get_account_detail, get_platform, list_accounts, list_platforms, list_tags,
@@ -37,6 +38,7 @@ use commands::vault::{
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(SharedAutoLock::new())
         .manage(SharedVaultState::new())
         .invoke_handler(tauri::generate_handler![
@@ -79,6 +81,8 @@ pub fn run() {
             replace_logo,
             delete_logo,
             assign_logo,
+            create_backup,
+            restore_backup,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

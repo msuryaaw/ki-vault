@@ -113,3 +113,38 @@ export async function changeMasterPassword(
   }
 }
 
+/**
+ * Creates an encrypted snapshot of the active vault at destinationPath.
+ * Requires the vault to be Unlocked.
+ */
+export async function createBackup(destinationPath: string): Promise<void> {
+  try {
+    await invoke<void>('create_backup', {
+      destinationPath,
+    });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/**
+ * Restores an encrypted backup (.kivault) into the active vault.
+ * Requires the active vault to be Unlocked, valid backup password, and confirmation token.
+ */
+export async function restoreBackup(
+  backupPath: string,
+  backupMasterPassword: string,
+  confirmation: string
+): Promise<void> {
+  try {
+    await invoke<void>('restore_backup', {
+      backupPath,
+      backupMasterPassword,
+      confirmation,
+    });
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+

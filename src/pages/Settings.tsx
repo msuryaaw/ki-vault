@@ -6,7 +6,8 @@ import {
   updatePasswordGeneratorSettings,
   getSecurityStatus,
 } from '../services/domain';
-import { changeMasterPassword } from '../services/vault';
+import { changeMasterPassword, createBackup, restoreBackup } from '../services/vault';
+import { save, open } from '@tauri-apps/plugin-dialog';
 import type {
   VaultSettings,
   SecurityStatus,
@@ -26,8 +27,11 @@ import {
   Clipboard,
   AlertCircle,
   CheckCircle2,
-  Lock,
   RefreshCw,
+  Archive,
+  Download,
+  Upload,
+  AlertTriangle,
 } from 'lucide-react';
 
 
@@ -59,6 +63,20 @@ export const Settings: React.FC = () => {
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  // Backup & Restore State
+  const [backupDestination, setBackupDestination] = useState<string>('');
+  const [backupLoading, setBackupLoading] = useState<boolean>(false);
+  const [backupStatusMessage, setBackupStatusMessage] = useState<string | null>(null);
+  const [backupError, setBackupError] = useState<string | null>(null);
+
+  const [restoreSource, setRestoreSource] = useState<string>('');
+  const [restorePassword, setRestorePassword] = useState<string>('');
+  const [restoreConfirmation, setRestoreConfirmation] = useState<string>('');
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState<boolean>(false);
+  const [restoreLoading, setRestoreLoading] = useState<boolean>(false);
+  const [restoreStatusMessage, setRestoreStatusMessage] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   // Appearance State (stored in localStorage for UX preference)
   const [themePreference, setThemePreference] = useState<'system' | 'dark' | 'light'>(() => {
@@ -178,6 +196,126 @@ export const Settings: React.FC = () => {
       setPasswordError(cmdErr.message || 'Failed to change master password.');
     } finally {
       setSavingSection(null);
+    }
+  };
+
+  // ─── Backup Handlers ──────────────────────────────────────────────────────────
+
+  const handleChooseBackupPath = async () => {
+    setBackupError(null);
+    setBackupStatusMessage(null);
+    try {
+      const defaultName = `kivault-backup-${new Date().toISOString().slice(0, 10)}.kivault`;
+      const selected = await save({
+        title: 'Save Encrypted KiVault Backup',
+        defaultPath: defaultName,
+        filters: [{ name: 'KiVault Container', extensions: ['kivault'] }],
+      });
+      if (selected) {
+        setBackupDestination(selected);
+      }
+    } catch {
+      setBackupError('Failed to open file save dialog.');
+    }
+  };
+
+  const handleCreateBackup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBackupError(null);
+    setBackupStatusMessage(null);
+
+    const dest = backupDestination.trim();
+    if (!dest) {
+      setBackupError('Please select or specify a destination path for the backup.');
+      return;
+    }
+
+    if (!dest.toLowerCase().endsWith('.kivault')) {
+      setBackupError('Backup file must have a .kivault extension.');
+      return;
+    }
+
+    setBackupLoading(true);
+    try {
+      await createBackup(dest);
+      setBackupStatusMessage(`Backup successfully created at ${dest}`);
+      setBackupDestination('');
+      setTimeout(() => setBackupStatusMessage(null), 5000);
+    } catch (err) {
+      const cmdErr = err as CommandError;
+      setBackupError(cmdErr.message || 'Failed to create backup.');
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  // ─── Restore Handlers ─────────────────────────────────────────────────────────
+
+  const handleChooseRestoreFile = async () => {
+    setRestoreError(null);
+    setRestoreStatusMessage(null);
+    try {
+      const selected = await open({
+        title: 'Select KiVault Backup File',
+        multiple: false,
+        directory: false,
+        filters: [{ name: 'KiVault Container', extensions: ['kivault'] }],
+      });
+      if (selected && typeof selected === 'string') {
+        setRestoreSource(selected);
+        setIsRestoreModalOpen(true);
+      }
+    } catch {
+      setRestoreError('Failed to open file picker.');
+    }
+  };
+
+  const handleCloseRestoreModal = () => {
+    setIsRestoreModalOpen(false);
+    // Explicitly wipe sensitive password from memory
+    setRestorePassword('');
+    setRestoreConfirmation('');
+    setRestoreError(null);
+  };
+
+  const handleExecuteRestore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRestoreError(null);
+    setRestoreStatusMessage(null);
+
+    if (!restoreSource.trim()) {
+      setRestoreError('No backup file selected.');
+      return;
+    }
+
+    if (!restorePassword) {
+      setRestoreError('Backup master password is required.');
+      return;
+    }
+
+    if (restoreConfirmation.trim() !== 'CONFIRM_RESTORE') {
+      setRestoreError('You must type CONFIRM_RESTORE exactly to authorize overwriting the active vault.');
+      return;
+    }
+
+    setRestoreLoading(true);
+    try {
+      await restoreBackup(restoreSource.trim(), restorePassword, 'CONFIRM_RESTORE');
+      // Clear password immediately on success
+      setRestorePassword('');
+      setRestoreConfirmation('');
+      setIsRestoreModalOpen(false);
+      setRestoreStatusMessage('Vault restored successfully. Active master password remains in force.');
+      // Refresh settings and vault summary in view
+      await loadData();
+      setTimeout(() => setRestoreStatusMessage(null), 6000);
+    } catch (err) {
+      const cmdErr = err as CommandError;
+      setRestoreError(cmdErr.message || 'Failed to restore backup.');
+      // Wipe password on failure as well
+      setRestorePassword('');
+    } finally {
+      setRestoreLoading(false);
     }
   };
 
@@ -614,17 +752,234 @@ export const Settings: React.FC = () => {
               </div>
             </div>
 
-            {/* Backup & Restore Notice (Planned for Phase 9) */}
+            {/* Backup & Restore Section */}
             <div className="border-t border-border/60 pt-4 flex items-center justify-between text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Lock className="h-3.5 w-3.5 text-muted-foreground/80" />
-                Encrypted Backup & Restore:
+              <span className="flex items-center gap-1.5 font-medium text-foreground">
+                <Archive className="h-3.5 w-3.5 text-primary" />
+                Backup & Restore System:
               </span>
-              <span className="text-[11px] font-mono bg-muted/60 px-2 py-0.5 rounded border border-border/60">
-                Roadmap Phase 9
+              <span className="text-[11px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                Active & Verified
               </span>
             </div>
           </section>
+
+          {/* ─── 5. Encrypted Backup & Restore Section ─── */}
+          <section className="rounded-2xl border border-border bg-card p-6 space-y-6 shadow-xs">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2 text-foreground font-bold text-sm">
+                <Archive className="h-4 w-4 text-primary" />
+                <span>Encrypted Backup & Restore</span>
+              </div>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                Container Snapshots
+              </span>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Create an encrypted full container snapshot (<code className="font-mono text-[11px] text-primary">.kivault</code>) or restore from an existing backup. The active master password remains in force after restoring.
+            </p>
+
+            {/* Global Backup/Restore Notices */}
+            {backupStatusMessage && (
+              <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-xs font-medium">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>{backupStatusMessage}</span>
+              </div>
+            )}
+            {restoreStatusMessage && (
+              <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-xs font-medium">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>{restoreStatusMessage}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
+              {/* Create Backup Box */}
+              <div className="rounded-xl border border-border/80 bg-background/50 p-5 space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-foreground font-semibold text-xs">
+                    <Download className="h-4 w-4 text-primary" />
+                    <span>Create Backup Snapshot</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Saves an encrypted snapshot of the current active database to a chosen location.
+                  </p>
+
+                  <form onSubmit={handleCreateBackup} className="space-y-3 pt-1">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                        Backup Destination Path
+                      </label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="e.g. C:\Backups\my-vault.kivault"
+                          value={backupDestination}
+                          onChange={(e) => setBackupDestination(e.target.value)}
+                          className="text-xs"
+                          disabled={backupLoading}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="md"
+                          onClick={handleChooseBackupPath}
+                          disabled={backupLoading}
+                          className="shrink-0 text-xs px-3"
+                        >
+                          Browse...
+                        </Button>
+                      </div>
+                    </div>
+
+                    {backupError && (
+                      <div className="flex items-start gap-1.5 text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                        <span>{backupError}</span>
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="sm"
+                      loading={backupLoading}
+                      disabled={!backupDestination.trim()}
+                      className="w-full text-xs"
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      Create Encrypted Backup
+                    </Button>
+                  </form>
+                </div>
+              </div>
+
+              {/* Restore Backup Box */}
+              <div className="rounded-xl border border-border/80 bg-background/50 p-5 space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-foreground font-semibold text-xs">
+                    <Upload className="h-4 w-4 text-amber-500" />
+                    <span>Restore from Backup</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Restore credentials and vault data from a <code className="font-mono text-[10px] text-primary">.kivault</code> backup container. Re-encrypts with your active master password.
+                  </p>
+
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
+                    <div className="flex items-center gap-1.5 text-amber-500 font-semibold text-[11px]">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      <span>Destructive Operation</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Restoring replaces the active database with the backup data. A password check and explicit confirmation token are required.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleChooseRestoreFile}
+                  className="w-full text-xs border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  Select Backup File & Restore...
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          {/* ─── Restore Confirmation Modal ─── */}
+          {isRestoreModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+              <div
+                role="dialog"
+                aria-modal="true"
+                className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-5 text-left"
+              >
+                <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                  <div className="flex items-center gap-2 text-foreground font-bold text-sm">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <span>Confirm Vault Restore</span>
+                  </div>
+                  <button
+                    onClick={handleCloseRestoreModal}
+                    disabled={restoreLoading}
+                    className="text-xs text-muted-foreground hover:text-foreground font-mono"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-2 text-xs text-muted-foreground">
+                  <p>
+                    You are restoring from file:
+                  </p>
+                  <p className="font-mono text-[11px] text-foreground bg-muted/60 p-2 rounded-lg border border-border break-all">
+                    {restoreSource}
+                  </p>
+                  <p className="text-[11px] text-amber-500 font-medium">
+                    ⚠️ Current active credentials and metadata will be completely replaced by the backup snapshot.
+                  </p>
+                </div>
+
+                <form onSubmit={handleExecuteRestore} className="space-y-4">
+                  <Input
+                    label="Backup Master Password"
+                    type="password"
+                    placeholder="Password used to encrypt the backup file"
+                    value={restorePassword}
+                    onChange={(e) => setRestorePassword(e.target.value)}
+                    disabled={restoreLoading}
+                    className="text-xs"
+                    helperText="Required to decrypt and verify the backup container before import."
+                  />
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                      Type &quot;CONFIRM_RESTORE&quot; to authorize
+                    </label>
+                    <Input
+                      placeholder="CONFIRM_RESTORE"
+                      value={restoreConfirmation}
+                      onChange={(e) => setRestoreConfirmation(e.target.value)}
+                      disabled={restoreLoading}
+                      className="text-xs font-mono"
+                    />
+                  </div>
+
+                  {restoreError && (
+                    <div className="flex items-start gap-1.5 text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>{restoreError}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCloseRestoreModal}
+                      disabled={restoreLoading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="destructive"
+                      size="sm"
+                      loading={restoreLoading}
+                      disabled={!restorePassword || restoreConfirmation.trim() !== 'CONFIRM_RESTORE'}
+                    >
+                      Restore & Replace Vault
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
