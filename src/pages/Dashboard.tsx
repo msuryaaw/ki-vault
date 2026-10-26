@@ -86,10 +86,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             variant="outline"
             size="sm"
             onClick={loadStats}
-            loading={loading}
+            disabled={loading}
             title="Refresh overview metrics"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           </Button>
 
           {onViewVaultStatus && (

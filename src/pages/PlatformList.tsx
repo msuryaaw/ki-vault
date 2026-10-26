@@ -428,10 +428,10 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={loadPlatforms}
-                loading={loading}
+                disabled={loading}
                 title="Refresh platform list"
               >
-                <RefreshCw className="h-3.5 w-3.5" />
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
               </Button>
               <Button
                 variant="primary"

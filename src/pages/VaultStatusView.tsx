@@ -83,10 +83,10 @@ export const VaultStatusView: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={handleRefreshAll}
-            loading={loading || vaultLoading}
+            disabled={loading || vaultLoading}
             title="Refresh security status"
           >
-            <RefreshCw className="h-4 w-4 mr-1.5" /> Refresh
+            <RefreshCw className={`h-4 w-4 mr-1.5 ${loading || vaultLoading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
           <Button
             variant="destructive"
