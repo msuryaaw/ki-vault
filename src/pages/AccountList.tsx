@@ -481,7 +481,7 @@ export const AccountList: React.FC<AccountListProps> = ({
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <PlatformLogo
-                      logoId={platforms.find((p) => p.id === acc.platform_id)?.logo_id}
+                      logoId={acc.logo_id || platforms.find((p) => p.id === acc.platform_id)?.logo_id}
                       platformName={acc.platform_name}
                       size="sm"
                     />

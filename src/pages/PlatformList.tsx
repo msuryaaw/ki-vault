@@ -356,12 +356,19 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                     onClick={() => setSelectedAccountId(acc.id)}
                     className="rounded-lg border border-border bg-card p-4 space-y-2 shadow-sm hover:border-primary/40 hover:bg-card/80 transition-all cursor-pointer group"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
-                        {acc.display_name || acc.username || 'Account'}
-                      </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <PlatformLogo
+                          logoId={acc.logo_id || selectedPlatform.logo_id}
+                          platformName={selectedPlatform.name}
+                          size="sm"
+                        />
+                        <span className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                          {acc.display_name || acc.username || 'Account'}
+                        </span>
+                      </div>
                       {acc.is_favorite && (
-                        <span className="text-amber-400 text-xs font-bold" title="Starred favorite">★</span>
+                        <span className="text-amber-400 text-xs font-bold shrink-0" title="Starred favorite">★</span>
                       )}
                     </div>
 

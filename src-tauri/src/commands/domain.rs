@@ -123,6 +123,7 @@ pub fn validate_create_account_input(
     password: Option<&str>,
     url: Option<&str>,
     notes: Option<&str>,
+    logo_id: Option<&str>,
     tags: Option<&[String]>,
     custom_fields: Option<&[CreateCustomFieldParamsInput]>,
 ) -> std::result::Result<(), CommandError> {
@@ -133,6 +134,7 @@ pub fn validate_create_account_input(
     validate_opt_string_bound(password, "Password", MAX_PASSWORD_LEN)?;
     validate_opt_string_bound(url, "URL", MAX_URL_LEN)?;
     validate_opt_string_bound(notes, "Notes", MAX_NOTES_LEN)?;
+    validate_opt_string_bound(logo_id, "Logo ID", MAX_ID_LEN)?;
 
     if let Some(tags_list) = tags {
         for tag_id in tags_list {
@@ -188,6 +190,9 @@ pub fn validate_update_account_input(
     }
     if let Some(Some(ref notes)) = fields.notes {
         validate_string_bound(notes, "Notes", MAX_NOTES_LEN, false)?;
+    }
+    if let Some(Some(ref logo)) = fields.logo_id {
+        validate_string_bound(logo, "Logo ID", MAX_ID_LEN, false)?;
     }
     Ok(())
 }
@@ -345,6 +350,7 @@ pub fn create_account(
     password: Option<String>,
     url: Option<String>,
     notes: Option<String>,
+    logo_id: Option<String>,
     favorite: bool,
     tags: Option<Vec<String>>,
     custom_fields: Option<Vec<CreateCustomFieldParamsInput>>,
@@ -357,6 +363,7 @@ pub fn create_account(
         password.as_deref(),
         url.as_deref(),
         notes.as_deref(),
+        logo_id.as_deref(),
         tags.as_deref(),
         custom_fields.as_deref(),
     )?;
@@ -373,6 +380,7 @@ pub fn create_account(
                 password,
                 url,
                 notes,
+                logo_id,
                 is_favorite: favorite,
                 tag_ids: tags.unwrap_or_default(),
                 custom_fields: custom_fields.unwrap_or_default(),
@@ -887,6 +895,7 @@ mod tests {
             password.as_deref(),
             url.as_deref(),
             notes.as_deref(),
+            None,
             tags.as_deref(),
             custom_fields.as_deref(),
         )?;
@@ -903,6 +912,7 @@ mod tests {
                         password,
                         url,
                         notes,
+                        logo_id: None,
                         is_favorite: favorite,
                         tag_ids: tags.unwrap_or_default(),
                         custom_fields: custom_fields.unwrap_or_default(),

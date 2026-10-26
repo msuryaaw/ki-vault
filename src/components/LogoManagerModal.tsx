@@ -133,6 +133,26 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
 
   if (!isOpen) return null;
 
+  const inferMimeType = (file: File): string => {
+    if (file.type && ALLOWED_MIME_TYPES.includes(file.type)) {
+      return file.type;
+    }
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'png':
+        return 'image/png';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'webp':
+        return 'image/webp';
+      case 'svg':
+        return 'image/svg+xml';
+      default:
+        return file.type || '';
+    }
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     const file = e.target.files?.[0];
@@ -140,14 +160,14 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
 
     // Check size limit: 2 MiB
     if (file.size > MAX_LOGO_SIZE_BYTES) {
-      setError(`File is too large (${(file.size / (1024 * 1024)).toFixed(2)} MB). Maximum allowed size is 2 MB.`);
+      setError(`File terlalu besar (${(file.size / (1024 * 1024)).toFixed(2)} MB). Maksimal ukuran file adalah 2 MB.`);
       return;
     }
 
-    // Check MIME type
-    const mime = file.type || '';
+    // Check MIME type with extension inference
+    const mime = inferMimeType(file);
     if (!ALLOWED_MIME_TYPES.includes(mime)) {
-      setError(`Unsupported file type (${mime || 'unknown'}). Allowed formats: PNG, JPEG, WebP, SVG.`);
+      setError(`Format file tidak didukung (${file.type || mime || 'unknown'}). Format yang diizinkan: PNG, JPG/JPEG, WebP, SVG.`);
       return;
     }
 
@@ -184,9 +204,10 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
       const uint8Array = new Uint8Array(arrayBuffer);
       const numberArray = Array.from(uint8Array);
 
+      const mimeType = inferMimeType(selectedFile);
       const imported = await importLogo(
         trimmedName,
-        selectedFile.type,
+        mimeType,
         numberArray
       );
 
@@ -323,24 +344,24 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
           </div>
         )}
 
-        {/* Import New Logo Accordion / Section */}
+        {/* Import New Logo / Upload Logo Section */}
         <form
           onSubmit={handleImportSubmit}
-          className="rounded-xl border border-border/80 bg-background/60 p-3.5 mb-4 space-y-3"
+          className="rounded-2xl border border-border/80 bg-background/60 p-4 mb-4 space-y-4"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <Upload className="h-3.5 w-3.5 text-primary" />
-              Import Logo
-            </span>
-            <span className="text-[10px] text-muted-foreground font-mono">
-              Max 2 MB (PNG, JPEG, WebP, SVG)
-            </span>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Upload className="h-4 w-4 text-primary" />
+              Upload Logo
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              UI yang lebih jelas dan informatif untuk menambahkan logo platform ke dalam vault terenkripsi.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-            {/* File Input and Thumbnail Preview */}
-            <div className="sm:col-span-5 flex items-center gap-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            {/* Drag & Drop / File Select Box */}
+            <div className="md:col-span-7 space-y-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -351,49 +372,110 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
               />
               <label
                 htmlFor="logo-file-input"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-input hover:border-primary/50 bg-card hover:bg-muted/40 text-xs text-foreground cursor-pointer transition-colors"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) {
+                    const synthEvent = {
+                      target: { files: [file] },
+                    } as unknown as React.ChangeEvent<HTMLInputElement>;
+                    handleFileSelect(synthEvent);
+                  }
+                }}
+                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-border/90 hover:border-primary/60 rounded-xl bg-card/40 hover:bg-card/70 transition-all cursor-pointer text-center group min-h-[140px]"
               >
-                <Upload className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="truncate max-w-[120px]">
-                  {selectedFile ? selectedFile.name : 'Choose file...'}
-                </span>
+                {importPreviewUrl ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="h-14 w-14 rounded-xl border border-border bg-background p-1.5 flex items-center justify-center shadow-sm">
+                      <img
+                        src={importPreviewUrl}
+                        alt="Preview"
+                        className="max-h-full max-w-full object-contain rounded"
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-foreground truncate max-w-[200px]">
+                      {selectedFile?.name}
+                    </span>
+                    <span className="text-[11px] text-primary group-hover:underline">
+                      Klik atau seret gambar lain untuk mengganti
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-2.5 rounded-xl bg-muted/50 text-muted-foreground group-hover:text-primary mb-2 transition-colors">
+                      <Image className="h-6 w-6" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">
+                      Pilih file logo
+                    </span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5">
+                      Drag & drop atau klik untuk memilih
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/80 font-mono mt-1">
+                      PNG, JPG, WebP, atau SVG (maks. 2 MB)
+                    </span>
+                  </>
+                )}
               </label>
 
-              {importPreviewUrl && (
-                <div className="h-8 w-8 rounded-md border border-border bg-background p-0.5 flex items-center justify-center shrink-0">
-                  <img
-                    src={importPreviewUrl}
-                    alt="Preview"
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
-              )}
+              {/* Logo Name & Save */}
+              <div className="flex items-center gap-2 pt-1">
+                <Input
+                  placeholder="Nama logo (contoh: Google, GitHub)..."
+                  value={importName}
+                  onChange={(e) => setImportName(e.target.value)}
+                  onClear={() => setImportName('')}
+                  disabled={isImporting}
+                  maxLength={64}
+                  showCharCount
+                  className="h-9 text-xs"
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  loading={isImporting}
+                  disabled={!selectedFile || !importName.trim()}
+                  className="h-9 px-4 text-xs shrink-0 gap-1.5"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  <span>Simpan</span>
+                </Button>
+              </div>
             </div>
 
-            {/* Logo Name Input */}
-            <div className="sm:col-span-5">
-              <Input
-                placeholder="Logo display name (e.g. GitHub)..."
-                value={importName}
-                onChange={(e) => setImportName(e.target.value)}
-                disabled={isImporting}
-                className="h-8 text-xs"
-              />
-            </div>
-
-            {/* Import Button */}
-            <div className="sm:col-span-2 flex justify-end">
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                loading={isImporting}
-                disabled={!selectedFile || !importName.trim()}
-                className="w-full h-8 text-xs gap-1"
-              >
-                <Check className="h-3.5 w-3.5" />
-                <span>Save</span>
-              </Button>
+            {/* Requirements Checklist Card */}
+            <div className="md:col-span-5 rounded-xl border border-border/60 bg-muted/20 p-3.5 flex flex-col justify-between text-xs space-y-2">
+              <span className="font-semibold text-foreground text-xs">
+                Persyaratan logo:
+              </span>
+              <ul className="space-y-1.5 text-[11px] text-muted-foreground">
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Format: PNG, JPG, WebP, atau SVG</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Ukuran maksimal: 2 MB</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Resolusi disarankan: 256 × 256 px (persegi)</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Rasio 1:1 (akan dipotong otomatis jika tidak persegi)</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Gambar sebaiknya logo resmi atau ikon sederhana</span>
+                </li>
+              </ul>
             </div>
           </div>
         </form>

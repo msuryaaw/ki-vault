@@ -44,7 +44,7 @@ export const Layout: React.FC<LayoutProps> = ({
         <div>
           {/* Logo & Product Title */}
           <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black border border-white/20 text-white shadow-md">
               <Shield className="h-5 w-5" />
             </div>
             <div>

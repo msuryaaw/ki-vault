@@ -91,6 +91,7 @@ export async function createAccount(input: CreateAccountInput): Promise<AccountD
       password: input.password || null,
       url: input.url || null,
       notes: input.notes || null,
+      logoId: input.logo_id || null,
       favorite: input.favorite,
       tags: input.tags || null,
       customFields: input.custom_fields || null,
@@ -108,18 +109,20 @@ export async function updateAccount(
   input: UpdateAccountInput
 ): Promise<Account> {
   try {
+    const fields: Record<string, unknown> = {};
+    if (input.platform_id !== undefined) fields.platform_id = input.platform_id || null;
+    if (input.display_name !== undefined) fields.display_name = input.display_name ? input.display_name : null;
+    if (input.username !== undefined) fields.username = input.username ? input.username : null;
+    if (input.email !== undefined) fields.email = input.email ? input.email : null;
+    if (input.password !== undefined) fields.password = input.password ? input.password : null;
+    if (input.url !== undefined) fields.url = input.url ? input.url : null;
+    if (input.notes !== undefined) fields.notes = input.notes ? input.notes : null;
+    if (input.logo_id !== undefined) fields.logo_id = input.logo_id ? input.logo_id : null;
+    if (input.is_favorite !== undefined) fields.is_favorite = input.is_favorite;
+
     return await invoke<Account>('update_account', {
       accountId,
-      fields: {
-        platform_id: input.platform_id || null,
-        display_name: input.display_name !== undefined ? input.display_name : null,
-        username: input.username !== undefined ? input.username : null,
-        email: input.email !== undefined ? input.email : null,
-        password: input.password !== undefined ? input.password : null,
-        url: input.url !== undefined ? input.url : null,
-        notes: input.notes !== undefined ? input.notes : null,
-        is_favorite: input.is_favorite !== undefined ? input.is_favorite : null,
-      },
+      fields,
     });
   } catch (err) {
     throw normalizeError(err);

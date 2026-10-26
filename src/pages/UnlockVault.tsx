@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useVault } from '../stores/VaultContext';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
-import { Lock, KeyRound, PlusCircle } from 'lucide-react';
+import { KeyRound, PlusCircle, Shield } from 'lucide-react';
 
 interface UnlockVaultProps {
   onSwitchToCreate?: () => void;
@@ -42,8 +42,8 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
   return (
     <div className="w-full max-w-md mx-auto space-y-6">
       <div className="text-center space-y-2">
-        <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent border border-border shadow-md">
-          <Lock className="h-6 w-6 text-primary" />
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-black border border-white/20 shadow-xl">
+          <Shield className="h-7 w-7 text-white" />
         </div>
         <h2 className="text-2xl font-bold tracking-tight text-foreground">Unlock KiVault</h2>
         <p className="text-xs text-muted-foreground">
@@ -57,8 +57,10 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
             label="Vault File Path"
             value={vaultPath}
             onChange={(e) => setVaultPath(e.target.value)}
-            placeholder="e.g. kivault.kivault"
-            helperText="Specify the path to an existing .kivault file."
+            onClear={() => setVaultPath('')}
+            placeholder="C:\Users\Nama\Documents\KiVault\kivault.kivault"
+            helperText="Masukkan path lengkap ke file vault Anda (.kivault)."
+            exampleText="Contoh: C:\Users\Nama\Documents\KiVault\kivault.kivault"
             disabled={loading}
             required
           />
@@ -69,7 +71,9 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••••••••••"
+          placeholder="Masukkan master password Anda"
+          helperText="Password minimal 8 karakter. Gunakan kombinasi huruf, angka, dan simbol."
+          exampleText="Contoh: Minimal 8 karakter unik untuk proteksi vault"
           disabled={loading}
           autoFocus
           required
@@ -77,7 +81,7 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
 
         {(clientError || error) && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/15 p-3 text-xs text-destructive">
-            {clientError || (error?.code === 'AuthenticationFailed' ? 'Incorrect master password or corrupted vault.' : error?.message)}
+            {clientError || (error?.code === 'AuthenticationFailed' ? 'Incorrect master password or corrupted vault. Pastikan password yang dimasukkan benar.' : error?.message)}
           </div>
         )}
 
@@ -93,10 +97,11 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
             onClick={onSwitchToCreate}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
           >
-            <PlusCircle className="h-3.5 w-3.5" /> Need a new vault? Create one now
+            <PlusCircle className="h-3.5 w-3.5" /> Belum punya vault? Buat vault baru
           </button>
         </div>
       )}
     </div>
   );
 };
+

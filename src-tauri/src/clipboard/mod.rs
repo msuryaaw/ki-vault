@@ -91,6 +91,7 @@ mod os_clipboard {
 
     pub const CF_UNICODETEXT: u32 = 13;
     pub const GMEM_MOVEABLE: u32 = 0x0002;
+    pub const GMEM_ZEROINIT: u32 = 0x0040;
 
     #[link(name = "user32")]
     extern "system" {
@@ -101,6 +102,7 @@ mod os_clipboard {
         fn GetClipboardData(uFormat: u32) -> *mut c_void;
         fn IsClipboardFormatAvailable(uFormat: u32) -> i32;
         fn GetClipboardSequenceNumber() -> u32;
+        fn RegisterClipboardFormatW(lpszFormat: *const u16) -> u32;
     }
 
     #[link(name = "kernel32")]
@@ -108,6 +110,7 @@ mod os_clipboard {
         fn GlobalAlloc(uFlags: u32, dwBytes: usize) -> *mut c_void;
         fn GlobalLock(hMem: *mut c_void) -> *mut c_void;
         fn GlobalUnlock(hMem: *mut c_void) -> i32;
+        fn GlobalFree(hMem: *mut c_void) -> *mut c_void;
     }
 
     #[derive(Default)]
@@ -129,6 +132,49 @@ mod os_clipboard {
             Err(AppError::Database(DatabaseError::Conflict(
                 "Unable to open OS clipboard".to_string(),
             )))
+        }
+
+        /// Helper to register a clipboard format name from a UTF-8 string slice.
+        pub(crate) fn register_format(name: &str) -> u32 {
+            let utf16: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
+            unsafe { RegisterClipboardFormatW(utf16.as_ptr()) }
+        }
+
+        /// Writes a DWORD = 0 format flag to the currently open clipboard.
+        ///
+        /// Returns `Ok(())` if written or format is 0 (unsupported/unavailable OS),
+        /// or an error if memory allocation fails.
+        unsafe fn set_clipboard_dword_zero(format_id: u32) -> Result<()> {
+            if format_id == 0 {
+                return Ok(());
+            }
+
+            let h_mem = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, std::mem::size_of::<u32>());
+            if h_mem.is_null() {
+                return Err(AppError::Database(DatabaseError::Conflict(
+                    "GlobalAlloc failed for clipboard format flag".to_string(),
+                )));
+            }
+
+            let ptr = GlobalLock(h_mem) as *mut u32;
+            if ptr.is_null() {
+                GlobalFree(h_mem);
+                return Err(AppError::Database(DatabaseError::Conflict(
+                    "GlobalLock failed for clipboard format flag".to_string(),
+                )));
+            }
+
+            std::ptr::write(ptr, 0u32);
+            GlobalUnlock(h_mem);
+
+            if SetClipboardData(format_id, h_mem).is_null() {
+                GlobalFree(h_mem);
+                return Err(AppError::Database(DatabaseError::Conflict(
+                    "SetClipboardData failed for clipboard format flag".to_string(),
+                )));
+            }
+
+            Ok(())
         }
 
         /// Internal helper to read CF_UNICODETEXT while clipboard is already held open.
@@ -162,6 +208,10 @@ mod os_clipboard {
 
     impl ClipboardBackend for OsClipboard {
         fn set_text(&self, text: &str) -> Result<u64> {
+            // Register Windows clipboard privacy formats
+            let cf_history = Self::register_format("CanIncludeInClipboardHistory");
+            let cf_cloud = Self::register_format("CanUploadToCloudClipboard");
+
             Self::open_with_retry()?;
 
             let utf16: Vec<u16> = text.encode_utf16().chain(std::iter::once(0)).collect();
@@ -170,6 +220,19 @@ mod os_clipboard {
             unsafe {
                 EmptyClipboard();
 
+                // 1. Exclude from Windows Clipboard History (Win + V)
+                if let Err(e) = Self::set_clipboard_dword_zero(cf_history) {
+                    CloseClipboard();
+                    return Err(e);
+                }
+
+                // 2. Prevent cloud sync across devices
+                if let Err(e) = Self::set_clipboard_dword_zero(cf_cloud) {
+                    CloseClipboard();
+                    return Err(e);
+                }
+
+                // 3. Write actual UTF-16 secret text
                 let h_mem = GlobalAlloc(GMEM_MOVEABLE, bytes_len);
                 if h_mem.is_null() {
                     CloseClipboard();
@@ -180,6 +243,7 @@ mod os_clipboard {
 
                 let ptr = GlobalLock(h_mem) as *mut u16;
                 if ptr.is_null() {
+                    GlobalFree(h_mem);
                     CloseClipboard();
                     return Err(AppError::Database(DatabaseError::Conflict(
                         "GlobalLock failed for clipboard data".to_string(),
@@ -190,6 +254,7 @@ mod os_clipboard {
                 GlobalUnlock(h_mem);
 
                 if SetClipboardData(CF_UNICODETEXT, h_mem).is_null() {
+                    GlobalFree(h_mem);
                     CloseClipboard();
                     return Err(AppError::Database(DatabaseError::Conflict(
                         "SetClipboardData failed".to_string(),
@@ -411,5 +476,33 @@ mod tests {
         let cleared = cb.clear_if_matches("secret-token", Some(seq)).unwrap();
         assert!(cleared);
         assert_eq!(cb.get_text().unwrap(), None);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_windows_clipboard_formats_registration_and_set_text() {
+        // Verify format registration generates valid non-zero format IDs on Windows
+        let cf_history = OsClipboard::register_format("CanIncludeInClipboardHistory");
+        let cf_cloud = OsClipboard::register_format("CanUploadToCloudClipboard");
+        assert!(
+            cf_history > 0,
+            "CanIncludeInClipboardHistory format must be registered"
+        );
+        assert!(
+            cf_cloud > 0,
+            "CanUploadToCloudClipboard format must be registered"
+        );
+        assert_ne!(cf_history, cf_cloud, "Format IDs must be distinct");
+
+        // Verify set_text successfully places text and privacy flags without error
+        let cb = OsClipboard::new();
+        let seq = cb.set_text("test_privacy_secret").unwrap();
+        assert!(seq > 0);
+
+        let retrieved = cb.get_text().unwrap();
+        assert_eq!(retrieved.as_deref(), Some("test_privacy_secret"));
+
+        // Clean up
+        let _ = cb.clear();
     }
 }

@@ -334,9 +334,13 @@ impl<'a> LogoRepository<'a> {
         // First check existence
         let _ = self.get_by_id(id)?;
 
-        // Nullify logo references in platforms
+        // Nullify logo references in platforms and accounts
         conn.execute(
             "UPDATE platforms SET logo_id = NULL WHERE logo_id = ?1;",
+            params![id],
+        )?;
+        conn.execute(
+            "UPDATE accounts SET logo_id = NULL WHERE logo_id = ?1;",
             params![id],
         )?;
 

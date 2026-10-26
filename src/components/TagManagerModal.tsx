@@ -169,11 +169,15 @@ export const TagManagerModal: React.FC<TagManagerModalProps> = ({
         )}
 
         {/* Create Tag Form */}
-        <form onSubmit={handleCreate} className="flex gap-2 mb-4">
+        <form onSubmit={handleCreate} className="flex gap-2 mb-4 items-start">
           <Input
-            placeholder="New tag name (e.g. Work, Finance)..."
+            placeholder="Tag baru (misal: Work, Personal, Finance)..."
             value={newTagName}
             onChange={(e) => setNewTagName(e.target.value)}
+            onClear={() => setNewTagName('')}
+            exampleText="Maks. 100 karakter. Contoh: Work, Personal, Finance."
+            maxLength={100}
+            showCharCount
             disabled={isSubmitting}
             className="flex-1 h-9 text-xs"
           />

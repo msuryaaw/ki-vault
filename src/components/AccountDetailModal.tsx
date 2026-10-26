@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { getAccountDetail, revealSecret, copySecret, getPlatform, getSettings } from '../services/domain';
-import type { AccountDetail, Platform } from '../types/domain';
+import type { AccountDetail, Platform, AccountSummary } from '../types/domain';
 import type { CommandError } from '../types/vault';
 import { useVault } from '../stores/VaultContext';
 import { Button } from '../components/Button';
@@ -30,7 +30,7 @@ interface AccountDetailModalProps {
   accountId: string | null;
   onClose: () => void;
   onEdit?: (account: AccountDetail) => void;
-  onDelete?: (accountSummary: { id: string; platform_id: string; platform_name: string; display_name: string | null; username: string | null; email: string | null; is_favorite: boolean; updated_at: number }) => void;
+  onDelete?: (accountSummary: AccountSummary) => void;
 }
 
 export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
@@ -232,7 +232,7 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/50 shrink-0">
           <div className="flex items-center gap-3">
             <PlatformLogo
-              logoId={platform?.logo_id}
+              logoId={account?.logo_id || platform?.logo_id}
               platformName={platform?.name}
               size="lg"
             />
@@ -570,6 +570,7 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                     id: account.id,
                     platform_id: account.platform_id,
                     platform_name: platform?.name || 'Platform',
+                    logo_id: account.logo_id,
                     display_name: account.display_name,
                     username: account.username,
                     email: account.email,

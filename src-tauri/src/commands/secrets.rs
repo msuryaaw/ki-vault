@@ -202,6 +202,7 @@ mod tests {
                     password: Some("classified_pass_xyz".into()),
                     url: None,
                     notes: None,
+                    logo_id: None,
                     is_favorite: false,
                     tag_ids: vec![],
                     custom_fields: vec![

@@ -24,6 +24,7 @@ pub struct Account {
     pub password: Option<String>,
     pub url: Option<String>,
     pub notes: Option<String>,
+    pub logo_id: Option<String>,
     pub is_favorite: bool,
     pub created_at: i64,
     pub updated_at: i64,
@@ -46,6 +47,7 @@ pub struct AccountSummary {
     pub display_name: Option<String>,
     pub username: Option<String>,
     pub email: Option<String>,
+    pub logo_id: Option<String>,
     pub is_favorite: bool,
     pub updated_at: i64,
 }
@@ -60,6 +62,7 @@ pub struct CreateAccountParams {
     pub password: Option<String>,
     pub url: Option<String>,
     pub notes: Option<String>,
+    pub logo_id: Option<String>,
     pub is_favorite: bool,
     pub tag_ids: Vec<String>,
     pub custom_fields: Vec<CreateCustomFieldParamsInput>,
@@ -84,6 +87,7 @@ pub struct UpdateAccountParams {
     pub password: Option<Option<String>>,
     pub url: Option<Option<String>>,
     pub notes: Option<Option<String>>,
+    pub logo_id: Option<Option<String>>,
     pub is_favorite: Option<bool>,
 }
 
@@ -174,8 +178,8 @@ impl<'a> AccountRepository<'a> {
         let tx = conn.unchecked_transaction()?;
 
         tx.execute(
-            "INSERT INTO accounts (id, platform_id, display_name, username, email, password, url, notes, is_favorite, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11);",
+            "INSERT INTO accounts (id, platform_id, display_name, username, email, password, url, notes, logo_id, is_favorite, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12);",
             params![
                 account_id,
                 params.platform_id,
@@ -185,6 +189,7 @@ impl<'a> AccountRepository<'a> {
                 params.password,
                 params.url,
                 params.notes,
+                params.logo_id,
                 if params.is_favorite { 1 } else { 0 },
                 now,
                 now
@@ -257,6 +262,7 @@ impl<'a> AccountRepository<'a> {
                 password: params.password,
                 url: params.url,
                 notes: params.notes,
+                logo_id: params.logo_id,
                 is_favorite: params.is_favorite,
                 created_at: now,
                 updated_at: now,
@@ -270,13 +276,13 @@ impl<'a> AccountRepository<'a> {
     pub fn get_by_id(&self, id: &str) -> Result<Account> {
         let conn = self.db.conn()?;
         let mut stmt = conn.prepare(
-            "SELECT id, platform_id, display_name, username, email, password, url, notes, is_favorite, created_at, updated_at
+            "SELECT id, platform_id, display_name, username, email, password, url, notes, logo_id, is_favorite, created_at, updated_at
              FROM accounts WHERE id = ?1;",
         )?;
 
         let mut rows = stmt.query(params![id])?;
         if let Some(row) = rows.next()? {
-            let is_fav: i64 = row.get(8)?;
+            let is_fav: i64 = row.get(9)?;
             Ok(Account {
                 id: row.get(0)?,
                 platform_id: row.get(1)?,
@@ -286,9 +292,10 @@ impl<'a> AccountRepository<'a> {
                 password: row.get(5)?,
                 url: row.get(6)?,
                 notes: row.get(7)?,
+                logo_id: row.get(8)?,
                 is_favorite: is_fav != 0,
-                created_at: row.get(9)?,
-                updated_at: row.get(10)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
             })
         } else {
             Err(AppError::Database(DatabaseError::NotFound {
@@ -320,7 +327,7 @@ impl<'a> AccountRepository<'a> {
 
         let mut query = String::from(
             "SELECT a.id, a.platform_id, p.name as platform_name,
-                    a.display_name, a.username, a.email, a.is_favorite, a.updated_at
+                    a.display_name, a.username, a.email, a.logo_id, a.is_favorite, a.updated_at
              FROM accounts a
              INNER JOIN platforms p ON a.platform_id = p.id ",
         );
@@ -355,7 +362,7 @@ impl<'a> AccountRepository<'a> {
             params_vec.iter().map(|b| b.as_ref()).collect();
 
         let rows = stmt.query_map(&params_slice[..], |row| {
-            let is_fav: i64 = row.get(6)?;
+            let is_fav: i64 = row.get(7)?;
             Ok(AccountSummary {
                 id: row.get(0)?,
                 platform_id: row.get(1)?,
@@ -363,8 +370,9 @@ impl<'a> AccountRepository<'a> {
                 display_name: row.get(3)?,
                 username: row.get(4)?,
                 email: row.get(5)?,
+                logo_id: row.get(6)?,
                 is_favorite: is_fav != 0,
-                updated_at: row.get(7)?,
+                updated_at: row.get(8)?,
             })
         })?;
 
@@ -396,7 +404,7 @@ impl<'a> AccountRepository<'a> {
 
         let mut query = String::from(
             "SELECT DISTINCT a.id, a.platform_id, p.name as platform_name,
-                    a.display_name, a.username, a.email, a.is_favorite, a.updated_at, a.created_at
+                    a.display_name, a.username, a.email, a.logo_id, a.is_favorite, a.updated_at, a.created_at
              FROM accounts a
              INNER JOIN platforms p ON a.platform_id = p.id
              LEFT JOIN account_tags at_rel ON a.id = at_rel.account_id
@@ -474,7 +482,7 @@ impl<'a> AccountRepository<'a> {
             params_vec.iter().map(|b| b.as_ref()).collect();
 
         let rows = stmt.query_map(&params_slice[..], |row| {
-            let is_fav: i64 = row.get(6)?;
+            let is_fav: i64 = row.get(7)?;
             Ok(AccountSummary {
                 id: row.get(0)?,
                 platform_id: row.get(1)?,
@@ -482,8 +490,9 @@ impl<'a> AccountRepository<'a> {
                 display_name: row.get(3)?,
                 username: row.get(4)?,
                 email: row.get(5)?,
+                logo_id: row.get(6)?,
                 is_favorite: is_fav != 0,
-                updated_at: row.get(7)?,
+                updated_at: row.get(8)?,
             })
         })?;
 
@@ -505,14 +514,15 @@ impl<'a> AccountRepository<'a> {
         let new_password = params.password.unwrap_or(current.password);
         let new_url = params.url.unwrap_or(current.url);
         let new_notes = params.notes.unwrap_or(current.notes);
+        let new_logo_id = params.logo_id.unwrap_or(current.logo_id);
         let new_is_favorite = params.is_favorite.unwrap_or(current.is_favorite);
 
         let conn = self.db.conn()?;
         conn.execute(
             "UPDATE accounts
              SET platform_id = ?1, display_name = ?2, username = ?3, email = ?4,
-                 password = ?5, url = ?6, notes = ?7, is_favorite = ?8, updated_at = ?9
-             WHERE id = ?10;",
+                 password = ?5, url = ?6, notes = ?7, logo_id = ?8, is_favorite = ?9, updated_at = ?10
+             WHERE id = ?11;",
             params![
                 new_platform_id,
                 new_display_name,
@@ -521,6 +531,7 @@ impl<'a> AccountRepository<'a> {
                 new_password,
                 new_url,
                 new_notes,
+                new_logo_id,
                 if new_is_favorite { 1 } else { 0 },
                 now,
                 id
@@ -536,6 +547,7 @@ impl<'a> AccountRepository<'a> {
             password: new_password,
             url: new_url,
             notes: new_notes,
+            logo_id: new_logo_id,
             is_favorite: new_is_favorite,
             created_at: current.created_at,
             updated_at: now,
@@ -597,6 +609,7 @@ mod tests {
                     password: Some("hunter2".into()),
                     url: Some("https://amazon.com".into()),
                     notes: Some("Family account".into()),
+                    logo_id: None,
                     is_favorite: true,
                     tag_ids: vec![tag.id.clone()],
                     custom_fields: vec![CreateCustomFieldParamsInput {
@@ -673,6 +686,7 @@ mod tests {
                 password: None,
                 url: None,
                 notes: None,
+                logo_id: None,
                 is_favorite: false,
                 tag_ids: vec![],
                 custom_fields: vec![CreateCustomFieldParamsInput {
@@ -720,6 +734,7 @@ mod tests {
                     password: Some("TopSecretP@ssw0rd!".into()),
                     url: None,
                     notes: None,
+                    logo_id: None,
                     is_favorite: false,
                     tag_ids: vec![],
                     custom_fields: vec![],
@@ -813,6 +828,7 @@ mod tests {
                     password: Some("SuperSecretPassword1!".into()),
                     url: None,
                     notes: Some("Confidential notes here".into()),
+                    logo_id: None,
                     is_favorite: true,
                     tag_ids: vec![tag_work.id.clone()],
                     custom_fields: vec![],
@@ -832,6 +848,7 @@ mod tests {
                     password: Some("SuperSecretPassword2!".into()),
                     url: None,
                     notes: None,
+                    logo_id: None,
                     is_favorite: false,
                     tag_ids: vec![tag_personal.id.clone()],
                     custom_fields: vec![],
@@ -981,6 +998,7 @@ mod tests {
                     password: Some("HiddenPassword123!".into()),
                     url: None,
                     notes: Some("Top secret internal note".into()),
+                    logo_id: None,
                     is_favorite: true,
                     tag_ids: vec![tag_special.id.clone()],
                     custom_fields: vec![],
@@ -1000,6 +1018,7 @@ mod tests {
                     password: Some("AnotherSecret456!".into()),
                     url: None,
                     notes: None,
+                    logo_id: None,
                     is_favorite: false,
                     tag_ids: vec![tag_normal.id.clone()],
                     custom_fields: vec![],
@@ -1019,6 +1038,7 @@ mod tests {
                     password: Some("ThirdSecret789!".into()),
                     url: None,
                     notes: None,
+                    logo_id: None,
                     is_favorite: false,
                     tag_ids: vec![],
                     custom_fields: vec![],

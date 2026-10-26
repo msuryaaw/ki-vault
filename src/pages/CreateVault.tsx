@@ -3,7 +3,7 @@ import { useVault } from '../stores/VaultContext';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
-import { Shield, AlertTriangle, ArrowRight, FolderPlus } from 'lucide-react';
+import { Shield, AlertTriangle, ArrowRight } from 'lucide-react';
 
 interface CreateVaultProps {
   onSwitchToUnlock?: () => void;
@@ -54,8 +54,8 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
   return (
     <div className="w-full max-w-md mx-auto space-y-6">
       <div className="text-center space-y-2">
-        <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent border border-border shadow-md">
-          <FolderPlus className="h-6 w-6 text-primary" />
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-black border border-white/20 shadow-xl">
+          <Shield className="h-7 w-7 text-white" />
         </div>
         <h2 className="text-2xl font-bold tracking-tight text-foreground">Create New Vault</h2>
         <p className="text-xs text-muted-foreground">
@@ -68,7 +68,12 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
           label="Vault Name"
           value={vaultName}
           onChange={(e) => setVaultName(e.target.value)}
-          placeholder="e.g. Personal Vault"
+          onClear={() => setVaultName('')}
+          placeholder="Personal Vault"
+          helperText="Nama pengenal untuk brankas kredensial ini (maks. 256 karakter)."
+          exampleText="Contoh: Personal Vault, Work Credentials"
+          maxLength={256}
+          showCharCount
           disabled={loading}
           required
         />
@@ -77,8 +82,10 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
           label="Vault File Path"
           value={vaultPath}
           onChange={(e) => setVaultPath(e.target.value)}
-          placeholder="e.g. C:\Users\name\vault.kivault"
-          helperText="Path where the encrypted .kivault file will be created."
+          onClear={() => setVaultPath('')}
+          placeholder="C:\Users\Nama\Documents\KiVault\kivault.kivault"
+          helperText="Lokasi file container terenkripsi (.kivault) akan disimpan."
+          exampleText="Contoh: C:\Users\Nama\Documents\KiVault\kivault.kivault atau kivault.kivault"
           disabled={loading}
           required
         />
@@ -89,7 +96,9 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••••••••••"
+            placeholder="Masukkan master password baru"
+            helperText="Kunci utama enkripsi vault (minimal 8 karakter). Jangan sampai lupa."
+            exampleText="Gunakan kombinasi huruf besar/kecil, angka, dan simbol."
             disabled={loading}
             required
           />
@@ -101,7 +110,8 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="••••••••••••••••"
+          placeholder="Ketik ulang master password baru"
+          helperText="Masukkan kembali password yang sama persis untuk verifikasi."
           disabled={loading}
           required
         />

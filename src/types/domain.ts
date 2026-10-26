@@ -9,6 +9,7 @@ export interface AccountSummary {
   display_name: string | null;
   username: string | null;
   email: string | null;
+  logo_id: string | null;
   is_favorite: boolean;
   updated_at: number;
 }
@@ -26,6 +27,7 @@ export interface Account {
   password?: string | null;
   url: string | null;
   notes: string | null;
+  logo_id: string | null;
   is_favorite: boolean;
   created_at: number;
   updated_at: number;
@@ -95,6 +97,7 @@ export interface CreateAccountInput {
   password?: string | null;
   url?: string | null;
   notes?: string | null;
+  logo_id?: string | null;
   favorite: boolean;
   tags?: string[] | null;
   custom_fields?: CreateCustomFieldInput[] | null;
@@ -112,6 +115,7 @@ export interface UpdateAccountInput {
   password?: string | null;
   url?: string | null;
   notes?: string | null;
+  logo_id?: string | null;
   is_favorite?: boolean | null;
 }
 

@@ -558,6 +558,7 @@ fn test_integration_domain_repositories_save_lock_unlock_roundtrip() {
                     password: Some("s3cur3-p@ss".into()),
                     url: Some("https://gitlab.com/company".into()),
                     notes: Some("Requires hardware token".into()),
+                    logo_id: None,
                     is_favorite: true,
                     tag_ids: vec![tag_work.id.clone(), tag_dev.id.clone()],
                     custom_fields: vec![

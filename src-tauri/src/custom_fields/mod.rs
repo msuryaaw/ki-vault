@@ -254,6 +254,7 @@ mod tests {
                     password: None,
                     url: None,
                     notes: None,
+                    logo_id: None,
                     is_favorite: false,
                     tag_ids: vec![],
                     custom_fields: vec![],

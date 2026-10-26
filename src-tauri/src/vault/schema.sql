@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     password TEXT,
     url TEXT,
     notes TEXT,
+    logo_id TEXT,
     is_favorite INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,

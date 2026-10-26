@@ -91,7 +91,14 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
             label="Platform Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Google, GitHub, Proton"
+            onClear={() => setName('')}
+            placeholder="Google, GitHub, Proton"
+            helperText="Nama layanan atau platform penyedia akun."
+            exampleText="Contoh: Google, GitHub, AWS, atau Proton."
+            maxLength={256}
+            showCharCount
+            isValid={name.trim().length >= 2}
+            error={name.length > 0 && name.trim().length < 2 ? 'Nama platform minimal 2 karakter.' : undefined}
             disabled={loading}
             autoFocus
             required
@@ -101,7 +108,12 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
             label="Category (Optional)"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            placeholder="e.g. Email, Development, Finance"
+            onClear={() => setCategory('')}
+            placeholder="Email, Development, Finance"
+            helperText="Kategori pengelompokan platform."
+            exampleText="Contoh: Email, Development, Social, Banking."
+            maxLength={100}
+            showCharCount
             disabled={loading}
           />
 
@@ -109,7 +121,14 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
             label="Website URL (Optional)"
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
-            placeholder="e.g. https://github.com"
+            onClear={() => setWebsite('')}
+            placeholder="https://github.com"
+            helperText="Alamat website resmi platform."
+            exampleText="Contoh: https://google.com atau https://github.com."
+            maxLength={2048}
+            showCharCount
+            isValid={website.length > 0 && /^https?:\/\/.+/i.test(website.trim())}
+            error={website.length > 0 && !/^https?:\/\/.+/i.test(website.trim()) ? 'Gunakan URL lengkap dengan http:// atau https://' : undefined}
             disabled={loading}
           />
 

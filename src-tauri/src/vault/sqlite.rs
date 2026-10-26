@@ -132,6 +132,14 @@ impl InMemoryDb {
             ));
         }
 
+        // Backward compatibility migration: ensure `logo_id` column exists on `accounts`
+        let has_logo_id: bool = conn
+            .prepare("SELECT 1 FROM pragma_table_info('accounts') WHERE name = 'logo_id';")?
+            .exists([])?;
+        if !has_logo_id {
+            conn.execute("ALTER TABLE accounts ADD COLUMN logo_id TEXT;", [])?;
+        }
+
         Ok(Self { conn: Some(conn) })
     }
 

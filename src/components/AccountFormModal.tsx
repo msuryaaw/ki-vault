@@ -11,6 +11,7 @@ import { listTags, createTag, assignTag, removeTag } from '../services/domain';
 import { Button } from './Button';
 import { Input } from './Input';
 import { TagSelector } from './TagSelector';
+import { LogoManagerModal } from './LogoManagerModal';
 import {
   User,
   Globe,
@@ -22,6 +23,7 @@ import {
   AlertCircle,
   Layers,
   Lock,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 
@@ -59,6 +61,8 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
   // Organization & Notes
   const [favorite, setFavorite] = useState(false);
   const [notes, setNotes] = useState('');
+  const [logoId, setLogoId] = useState<string | null>(null);
+  const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
 
   // Tags State
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
@@ -97,6 +101,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
       setPassword(''); // Password must not be pre-filled; only provided if changing
       setFavorite(initialAccount.account.is_favorite);
       setNotes(initialAccount.account.notes || '');
+      setLogoId(initialAccount.account.logo_id || null);
       setSelectedTagIds(initialAccount.tags ? initialAccount.tags.map((t) => t.id) : []);
       setCustomFields([]); // Custom fields in edit mode are read-only from Step 5
     } else {
@@ -108,6 +113,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
       setPassword('');
       setFavorite(false);
       setNotes('');
+      setLogoId(null);
       setSelectedTagIds([]);
       setCustomFields([]);
     }
@@ -187,6 +193,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           email: email.trim() || null,
           url: url.trim() || null,
           notes: notes.trim() || null,
+          logo_id: logoId,
           is_favorite: favorite,
         };
 
@@ -217,6 +224,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           password: password.length > 0 ? password : null,
           url: url.trim() || null,
           notes: notes.trim() || null,
+          logo_id: logoId,
           favorite,
           tags: selectedTagIds.length > 0 ? selectedTagIds : null,
           custom_fields: customFields.length > 0 ? customFields : null,
@@ -324,35 +332,61 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="Display Name / Title"
-                placeholder="e.g. Personal Gmail, Work AWS"
+                label="Account Name / Title"
+                placeholder="Google, GitHub, BPK RI"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
+                onClear={() => setDisplayName('')}
+                helperText="Nama akun atau label pengenal."
+                exampleText="Contoh: Google, GitHub, atau nama akun lainnya."
+                maxLength={64}
+                showCharCount
+                isValid={displayName.trim().length >= 3}
+                error={displayName.length > 0 && displayName.trim().length < 3 ? 'Nama akun minimal 3 karakter.' : undefined}
                 disabled={loading}
               />
 
               <Input
                 label="Username / ID"
-                placeholder="e.g. johndoe"
+                placeholder="user123, myusername"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                onClear={() => setUsername('')}
+                helperText="ID pengguna untuk login."
+                exampleText="Contoh: user123, myusername."
+                maxLength={256}
+                showCharCount
                 disabled={loading}
               />
 
               <Input
                 label="Email"
                 type="email"
-                placeholder="e.g. user@example.com"
+                placeholder="user@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onClear={() => setEmail('')}
+                helperText="Alamat email yang terasosiasi."
+                exampleText="Contoh: user@gmail.com atau user@example.com."
+                maxLength={256}
+                showCharCount
+                isValid={email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}
+                error={email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? 'Masukkan alamat email yang valid.' : undefined}
                 disabled={loading}
               />
 
               <Input
                 label="Website URL"
-                placeholder="e.g. https://service.com/login"
+                placeholder="https://example.com"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
+                onClear={() => setUrl('')}
+                helperText="URL halaman login layanan."
+                exampleText="Contoh: https://google.com atau https://github.com."
+                maxLength={2048}
+                showCharCount
+                isValid={url.length > 0 && /^https?:\/\/.+/i.test(url.trim())}
+                error={url.length > 0 && !/^https?:\/\/.+/i.test(url.trim()) ? 'Masukkan URL valid diawali http:// atau https://' : undefined}
                 disabled={loading}
               />
             </div>
@@ -367,15 +401,18 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
               </span>
               {isEditing && (
                 <span className="text-[11px] text-muted-foreground font-normal italic">
-                  Leave blank to keep existing password
+                  Kosongkan jika tidak ingin mengganti password
                 </span>
               )}
             </label>
             <Input
               type="password"
-              placeholder={isEditing ? 'Enter new password to overwrite...' : 'Enter password...'}
+              placeholder={isEditing ? 'Masukkan password baru untuk mengganti...' : 'Masukkan password akun...'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onClear={() => setPassword('')}
+              helperText="Password untuk akun ini (bebas sesuai kebutuhan akun)."
+              exampleText="Contoh: Gunakan kombinasi huruf, angka, dan simbol."
               disabled={loading}
             />
           </div>
@@ -504,6 +541,49 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
             />
           </div>
 
+          {/* Section: Logo Selection */}
+          <div className="space-y-1.5 pt-1">
+            <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                Account Logo (Optional)
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsLogoModalOpen(true)}
+                className="text-[11px] text-primary hover:underline cursor-pointer font-medium"
+              >
+                {logoId ? 'Change Logo' : 'Choose Logo...'}
+              </button>
+            </label>
+            <div className="flex items-center justify-between p-2.5 rounded-lg border border-input bg-background/50">
+              <span className="text-xs text-muted-foreground">
+                {logoId ? 'Custom account logo selected' : 'Using platform logo / default'}
+              </span>
+              {logoId ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLogoId(null)}
+                  className="h-6 px-2 text-[10px]"
+                >
+                  Remove
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsLogoModalOpen(true)}
+                  className="h-6 px-2 text-[10px]"
+                >
+                  Browse...
+                </Button>
+              )}
+            </div>
+          </div>
+
           {/* Footer Submit Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button
@@ -530,6 +610,17 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Logo Manager Modal */}
+      <LogoManagerModal
+        isOpen={isLogoModalOpen}
+        onClose={() => setIsLogoModalOpen(false)}
+        selectedLogoId={logoId}
+        onSelectLogo={(newLogoId) => {
+          setLogoId(newLogoId);
+          setIsLogoModalOpen(false);
+        }}
+      />
     </div>
   );
 };
