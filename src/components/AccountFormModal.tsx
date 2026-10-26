@@ -12,6 +12,7 @@ import { Button } from './Button';
 import { Input } from './Input';
 import { TagSelector } from './TagSelector';
 import { LogoManagerModal } from './LogoManagerModal';
+import { PlatformLogo } from './PlatformLogo';
 import {
   User,
   Globe,
@@ -557,18 +558,31 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
               </button>
             </label>
             <div className="flex items-center justify-between p-2.5 rounded-lg border border-input bg-background/50">
-              <span className="text-xs text-muted-foreground">
-                {logoId ? 'Custom account logo selected' : 'Using platform logo / default'}
-              </span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                {logoId ? (
+                  <PlatformLogo
+                    logoId={logoId}
+                    platformName={displayName || 'Account'}
+                    size="sm"
+                  />
+                ) : (
+                  <div className="h-6 w-6 rounded-lg bg-muted flex items-center justify-center text-muted-foreground shrink-0">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                  </div>
+                )}
+                <span className="text-xs text-muted-foreground truncate">
+                  {logoId ? 'Logo khusus akun terpilih' : 'Menggunakan logo platform / default'}
+                </span>
+              </div>
               {logoId ? (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setLogoId(null)}
-                  className="h-6 px-2 text-[10px]"
+                  className="h-6 px-2 text-[10px] shrink-0"
                 >
-                  Remove
+                  Hapus
                 </Button>
               ) : (
                 <Button
@@ -576,9 +590,9 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={() => setIsLogoModalOpen(true)}
-                  className="h-6 px-2 text-[10px]"
+                  className="h-6 px-2 text-[10px] shrink-0"
                 >
-                  Browse...
+                  Pilih...
                 </Button>
               )}
             </div>

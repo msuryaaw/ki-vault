@@ -97,16 +97,16 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
       fetchLogos();
       setImportName('');
       setSelectedFile(null);
+      setEditingLogoId(null);
+      setDeletingLogoId(null);
+    } else {
       if (importPreviewUrl) {
         URL.revokeObjectURL(importPreviewUrl);
         setImportPreviewUrl(null);
       }
-      setEditingLogoId(null);
-      setDeletingLogoId(null);
-    } else {
       cleanupBlobUrls();
     }
-  }, [isOpen, fetchLogos, cleanupBlobUrls, importPreviewUrl]);
+  }, [isOpen, fetchLogos, cleanupBlobUrls]);
 
   // Load thumbnail on demand for visible logo summary
   const loadLogoPreview = useCallback(async (logoId: string) => {
@@ -314,7 +314,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
                 Logo Manager
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                Import and organize brand icons stored in your encrypted vault.
+                Import and organize brand icons for platforms and accounts stored in your encrypted vault.
               </p>
             </div>
           </div>
@@ -355,7 +355,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
               Upload Logo
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              UI yang lebih jelas dan informatif untuk menambahkan logo platform ke dalam vault terenkripsi.
+              Tambahkan logo platform atau akun kustom ke dalam vault terenkripsi.
             </p>
           </div>
 
@@ -424,7 +424,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
               </label>
 
               {/* Logo Name & Save */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-end gap-2 pt-1">
                 <Input
                   placeholder="Nama logo (contoh: Google, GitHub)..."
                   value={importName}
@@ -490,7 +490,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
           ) : logos.length === 0 ? (
             <div className="py-16 text-center border border-dashed border-border rounded-xl flex flex-col items-center justify-center text-xs text-muted-foreground gap-2">
               <Image className="h-8 w-8 text-muted-foreground/50" />
-              <p>No logos imported yet. Use the form above to add platform brand logos.</p>
+              <p>Belum ada logo yang disimpan. Gunakan formulir di atas untuk mengunggah logo platform atau akun.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
