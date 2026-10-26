@@ -391,7 +391,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
               >
                 {importPreviewUrl ? (
                   <div className="flex flex-col items-center gap-2">
-                    <div className="h-14 w-14 rounded-xl border border-border bg-background p-1.5 flex items-center justify-center shadow-sm">
+                    <div className="h-14 w-14 rounded-xl border border-border bg-white p-1.5 flex items-center justify-center shadow-sm">
                       <img
                         src={importPreviewUrl}
                         alt="Preview"
@@ -552,7 +552,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
                     )}
 
                     {/* Image Thumbnail Container */}
-                    <div className="h-16 w-full flex items-center justify-center p-1.5 rounded-lg bg-background/80 border border-border/40 mb-2">
+                    <div className="h-16 w-full flex items-center justify-center p-1.5 rounded-lg bg-white border border-border/40 mb-2">
                       {previewUrl ? (
                         <img
                           src={previewUrl}

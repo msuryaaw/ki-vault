@@ -92,7 +92,7 @@ export const PlatformLogo: React.FC<PlatformLogoProps> = ({
   if (blobUrl) {
     return (
       <div
-        className={`${sizeDimensions} rounded-lg bg-background/80 border border-border/60 flex items-center justify-center p-1 overflow-hidden shrink-0 ${className}`}
+        className={`${sizeDimensions} rounded-lg bg-white border border-border/60 flex items-center justify-center p-1 overflow-hidden shrink-0 shadow-2xs ${className}`}
       >
         <img
           src={blobUrl}
