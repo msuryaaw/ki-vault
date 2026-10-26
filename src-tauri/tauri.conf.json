@@ -13,8 +13,10 @@
     "windows": [
       {
         "title": "KiVault",
-        "width": 1000,
-        "height": 700,
+        "width": 1240,
+        "height": 795,
+        "minWidth": 1240,
+        "minHeight": 795,
         "resizable": true,
         "fullscreen": false
       }

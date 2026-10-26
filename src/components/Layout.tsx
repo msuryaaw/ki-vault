@@ -43,7 +43,7 @@ export const Layout: React.FC<LayoutProps> = ({
       <aside className="w-60 border-r border-border bg-card/60 flex flex-col justify-between shrink-0">
         <div>
           {/* Logo & Product Title */}
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+          <div className="h-14 flex items-center gap-3 px-5 border-b border-border shrink-0">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black border border-white/20 text-white shadow-md">
               <Shield className="h-5 w-5" />
             </div>

@@ -815,7 +815,7 @@ export const Settings: React.FC = () => {
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
                         Backup Destination Path
                       </label>
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2">
                         <Input
                           placeholder="e.g. C:\Backups\my-vault.kivault"
                           value={backupDestination}
