@@ -332,15 +332,15 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-8 p-8 text-left">
+    <div className="w-full max-w-6xl mx-auto space-y-6 text-left">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
             <Sliders className="h-6 w-6 text-primary" />
             <span>Settings</span>
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Configure security parameters, generator defaults, and vault environment.
           </p>
         </div>

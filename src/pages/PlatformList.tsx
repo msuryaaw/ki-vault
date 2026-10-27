@@ -237,7 +237,7 @@ export const PlatformList: React.FC<PlatformListProps> = ({
   });
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 text-left">
+    <div className="w-full max-w-6xl mx-auto space-y-6 text-left">
       {/* ─── Detail / Account View for Selected Platform (§7) ─── */}
       {selectedPlatform ? (
         <div className="space-y-6 animate-in fade-in duration-150">
@@ -258,9 +258,9 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                 size="lg"
               />
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                   <span>{selectedPlatform.name}</span>
-                </h2>
+                </h1>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                   <span>{selectedPlatform.account_count} Accounts</span>
                   {selectedPlatform.category && (
@@ -404,10 +404,10 @@ export const PlatformList: React.FC<PlatformListProps> = ({
           {/* Header Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
                 <Globe className="h-6 w-6 text-primary" />
                 <span>Platforms</span>
-              </h2>
+              </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Manage services, providers, and organizational domains.
               </p>

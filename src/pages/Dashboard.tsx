@@ -16,6 +16,7 @@ import {
   Lock,
   Clock,
   Key,
+  LayoutDashboard,
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -64,18 +65,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 text-left">
+    <div className="w-full max-w-6xl mx-auto space-y-6 text-left">
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            <LayoutDashboard className="h-6 w-6 text-primary" />
             <span>Overview</span>
             {summary && (
               <span className="text-xs font-mono font-normal text-muted-foreground bg-muted/40 px-2 py-0.5 rounded border border-border/50">
                 {summary.vault_name}
               </span>
             )}
-          </h2>
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Real-time status and credential metrics for your active vault.
           </p>

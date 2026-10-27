@@ -66,14 +66,14 @@ export const VaultStatusView: React.FC = () => {
   const isDegraded = securityStatus?.vault_integrity === 'Degraded';
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
+    <div className="w-full max-w-6xl mx-auto space-y-6 text-left">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-4 gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
             <ShieldCheck className="h-6 w-6 text-emerald-400" />
-            Security Center & Vault Status
-          </h2>
+            <span>Security Center & Vault Status</span>
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Active cryptographic health, runtime policies, and memory database telemetry.
           </p>

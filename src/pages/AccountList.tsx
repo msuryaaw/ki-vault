@@ -223,32 +223,26 @@ export const AccountList: React.FC<AccountListProps> = ({
 
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="w-full max-w-6xl mx-auto space-y-6 text-left">
       {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-6">
-        <div className="flex items-center gap-3">
-          <div
-            className={`flex h-12 w-12 items-center justify-center rounded-xl shadow-inner ${
-              favoriteOnlyMode
-                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                : 'bg-primary/10 text-primary border border-primary/20'
-            }`}
-          >
-            {favoriteOnlyMode ? <Star className="h-6 w-6 fill-amber-500/30" /> : <Users className="h-6 w-6" />}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              {favoriteOnlyMode ? 'Favorite Accounts' : 'All Accounts'}
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-mono font-medium bg-muted text-muted-foreground border border-border">
-                {accounts.length}
-              </span>
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {favoriteOnlyMode
-                ? 'Quick access to your starred and frequently used credentials.'
-                : 'Secure overview of all credentials organized by platform and identity.'}
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            {favoriteOnlyMode ? (
+              <Star className="h-6 w-6 text-amber-400 fill-amber-400/20" />
+            ) : (
+              <Users className="h-6 w-6 text-primary" />
+            )}
+            <span>{favoriteOnlyMode ? 'Favorite Accounts' : 'All Accounts'}</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-mono font-medium bg-muted text-muted-foreground border border-border">
+              {accounts.length}
+            </span>
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {favoriteOnlyMode
+              ? 'Quick access to your starred and frequently used credentials.'
+              : 'Secure overview of all credentials organized by platform and identity.'}
+          </p>
         </div>
 
         {/* Action Buttons */}
