@@ -90,6 +90,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             onClick={loadStats}
             disabled={loading}
             title="Refresh overview metrics"
+            className="h-9 px-3 text-xs"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           </Button>
@@ -100,9 +101,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
               size="sm"
               onClick={onViewVaultStatus}
               title="View vault container metadata"
+              className="h-9 px-3 text-xs gap-1.5"
             >
-              <Key className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
-              Vault Details
+              <Key className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>Vault Details</span>
             </Button>
           )}
 
@@ -110,8 +112,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             variant="primary"
             size="sm"
             onClick={handleAddAccount}
+            className="h-9 px-3 text-xs gap-1.5 shadow-sm"
           >
-            <Plus className="mr-1.5 h-4 w-4" /> Add Account
+            <Plus className="h-4 w-4" />
+            <span>Add Account</span>
           </Button>
         </div>
       </div>

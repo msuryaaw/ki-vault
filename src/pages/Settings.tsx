@@ -350,10 +350,10 @@ export const Settings: React.FC = () => {
           size="sm"
           onClick={loadData}
           disabled={loading}
-          className="text-xs gap-1.5 h-8 self-start sm:self-auto"
+          className="h-9 px-3 text-xs gap-1.5 self-start sm:self-auto"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          <span>Refresh</span>
         </Button>
       </div>
 
@@ -796,20 +796,20 @@ export const Settings: React.FC = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1 items-stretch">
               {/* Create Backup Box */}
-              <div className="rounded-xl border border-border/80 bg-background/50 p-5 space-y-4 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-foreground font-semibold text-xs">
-                    <Download className="h-4 w-4 text-primary" />
-                    <span>Create Backup Snapshot</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Saves an encrypted snapshot of the current active database to a chosen location.
-                  </p>
+              <div className="rounded-xl border border-border/80 bg-background/50 p-5 flex flex-col justify-between">
+                <form onSubmit={handleCreateBackup} className="flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-foreground font-semibold text-xs">
+                      <Download className="h-4 w-4 text-primary" />
+                      <span>Create Backup Snapshot</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Saves an encrypted snapshot of the current active database to a chosen location.
+                    </p>
 
-                  <form onSubmit={handleCreateBackup} className="space-y-3 pt-1">
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 pt-1">
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
                         Backup Destination Path
                       </label>
@@ -840,54 +840,60 @@ export const Settings: React.FC = () => {
                         <span>{backupError}</span>
                       </div>
                     )}
+                  </div>
 
+                  <div className="pt-2">
                     <Button
                       type="submit"
                       variant="primary"
                       size="sm"
                       loading={backupLoading}
                       disabled={!backupDestination.trim()}
-                      className="w-full text-xs"
+                      className="w-full text-xs h-9"
                     >
                       <Download className="h-3.5 w-3.5 mr-1.5" />
                       Create Encrypted Backup
                     </Button>
-                  </form>
-                </div>
+                  </div>
+                </form>
               </div>
 
               {/* Restore Backup Box */}
-              <div className="rounded-xl border border-border/80 bg-background/50 p-5 space-y-4 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-foreground font-semibold text-xs">
-                    <Upload className="h-4 w-4 text-amber-500" />
-                    <span>Restore from Backup</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Restore credentials and vault data from a <code className="font-mono text-[10px] text-primary">.kivault</code> backup container. Re-encrypts with your active master password.
-                  </p>
-
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
-                    <div className="flex items-center gap-1.5 text-amber-500 font-semibold text-[11px]">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                      <span>Destructive Operation</span>
+              <div className="rounded-xl border border-border/80 bg-background/50 p-5 flex flex-col justify-between">
+                <div className="flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-foreground font-semibold text-xs">
+                      <Upload className="h-4 w-4 text-amber-500" />
+                      <span>Restore from Backup</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      Restoring replaces the active database with the backup data. A password check and explicit confirmation token are required.
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Restore credentials and vault data from a <code className="font-mono text-[10px] text-primary">.kivault</code> backup container. Re-encrypts with your active master password.
                     </p>
+
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
+                      <div className="flex items-center gap-1.5 text-amber-500 font-semibold text-[11px]">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        <span>Destructive Operation</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        Restoring replaces the active database with the backup data. A password check and explicit confirmation token are required.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleChooseRestoreFile}
+                      className="w-full text-xs h-9 border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+                    >
+                      <Upload className="h-3.5 w-3.5 mr-1.5" />
+                      Select Backup File & Restore...
+                    </Button>
                   </div>
                 </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleChooseRestoreFile}
-                  className="w-full text-xs border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
-                >
-                  <Upload className="h-3.5 w-3.5 mr-1.5" />
-                  Select Backup File & Restore...
-                </Button>
               </div>
             </div>
           </section>

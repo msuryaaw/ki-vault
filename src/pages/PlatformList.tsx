@@ -418,7 +418,7 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsLogoManagerModalOpen(true)}
-                className="gap-1.5"
+                className="h-9 px-3 text-xs gap-1.5"
                 title="Manage Logos"
               >
                 <ImageIcon className="h-3.5 w-3.5" />
@@ -430,6 +430,7 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                 onClick={loadPlatforms}
                 disabled={loading}
                 title="Refresh platform list"
+                className="h-9 px-3 text-xs"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
               </Button>
@@ -440,22 +441,24 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                   setEditingPlatform(null);
                   setIsFormModalOpen(true);
                 }}
+                className="h-9 px-3 text-xs gap-1.5 shadow-sm"
               >
-                <Plus className="mr-1.5 h-4 w-4" /> Add Platform
+                <Plus className="h-4 w-4" />
+                <span>Add Platform</span>
               </Button>
             </div>
           </div>
 
           {/* Search / Filter bar */}
           <div className="flex items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="relative flex-1 flex items-center">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search platforms by name, category, or website..."
-                className="w-full rounded-lg border border-border bg-input/40 pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full h-9 rounded-lg border border-border bg-input/40 pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
           </div>

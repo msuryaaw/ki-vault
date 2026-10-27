@@ -303,14 +303,14 @@ export const AccountList: React.FC<AccountListProps> = ({
       {/* Controls Bar: Search, Platform Filter, Tag Filter, Favorites Toggle, Sorting */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 bg-card border border-border p-3.5 rounded-xl shadow-xs">
         {/* Search Input */}
-        <div className="relative sm:col-span-2 lg:col-span-4">
+        <div className="relative sm:col-span-2 lg:col-span-4 flex items-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             placeholder="Search account name, username, email, platform..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-background border border-input rounded-lg pl-9 pr-8 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+            className="w-full h-9 bg-background border border-input rounded-lg pl-9 pr-8 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
           />
           {searchQuery && (
             <button
@@ -325,13 +325,13 @@ export const AccountList: React.FC<AccountListProps> = ({
         </div>
 
         {/* Platform Filter */}
-        <div className="relative lg:col-span-2">
-          <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
+        <div className="relative lg:col-span-2 flex items-center">
+          <div className="flex items-center w-full h-9 bg-background border border-input rounded-lg px-2.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
             <Globe className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0 pointer-events-none" />
             <select
               value={selectedPlatformId}
               onChange={(e) => setSelectedPlatformId(e.target.value)}
-              className="w-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
+              className="w-full h-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
             >
               <option value="all">All Platforms ({platforms.length})</option>
               {platforms.map((p) => (
@@ -344,13 +344,13 @@ export const AccountList: React.FC<AccountListProps> = ({
         </div>
 
         {/* Tag Filter */}
-        <div className="relative lg:col-span-2">
-          <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
+        <div className="relative lg:col-span-2 flex items-center">
+          <div className="flex items-center w-full h-9 bg-background border border-input rounded-lg px-2.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
             <TagIcon className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0 pointer-events-none" />
             <select
               value={selectedTagId}
               onChange={(e) => setSelectedTagId(e.target.value)}
-              className="w-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
+              className="w-full h-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
             >
               <option value="all">All Tags ({tags.length})</option>
               {tags.map((t) => (
@@ -363,13 +363,13 @@ export const AccountList: React.FC<AccountListProps> = ({
         </div>
 
         {/* Sort Order */}
-        <div className="relative lg:col-span-2">
-          <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
+        <div className="relative lg:col-span-2 flex items-center">
+          <div className="flex items-center w-full h-9 bg-background border border-input rounded-lg px-2.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
             <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0 pointer-events-none" />
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-              className="w-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
+              className="w-full h-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
             >
               <option value="updated_at_desc">Recently Updated</option>
               <option value="updated_at_asc">Oldest Updated</option>
@@ -386,7 +386,7 @@ export const AccountList: React.FC<AccountListProps> = ({
           <div className="lg:col-span-2 flex items-center justify-end">
             <button
               onClick={() => setLocalFavoriteOnly(!localFavoriteOnly)}
-              className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+              className={`w-full h-9 flex items-center justify-center gap-1.5 px-3 rounded-lg text-xs font-medium border transition-colors ${
                 localFavoriteOnly
                   ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
                   : 'bg-background text-muted-foreground border-input hover:text-foreground'

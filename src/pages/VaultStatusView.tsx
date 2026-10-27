@@ -78,23 +78,27 @@ export const VaultStatusView: React.FC = () => {
             Active cryptographic health, runtime policies, and memory database telemetry.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefreshAll}
             disabled={loading || vaultLoading}
             title="Refresh security status"
+            className="h-9 px-3 text-xs gap-1.5"
           >
-            <RefreshCw className={`h-4 w-4 mr-1.5 ${loading || vaultLoading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`h-3.5 w-3.5 ${loading || vaultLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
           </Button>
           <Button
             variant="destructive"
             size="sm"
             onClick={lockVault}
             loading={vaultLoading}
+            className="h-9 px-3 text-xs gap-1.5 shadow-sm"
           >
-            <Lock className="mr-1.5 h-4 w-4" /> Lock Vault
+            <Lock className="h-4 w-4" />
+            <span>Lock Vault</span>
           </Button>
         </div>
       </div>
