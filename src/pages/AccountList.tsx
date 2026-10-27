@@ -332,8 +332,8 @@ export const AccountList: React.FC<AccountListProps> = ({
 
         {/* Platform Filter */}
         <div className="relative lg:col-span-2">
-          <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
-            <Globe className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0" />
+          <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
+            <Globe className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0 pointer-events-none" />
             <select
               value={selectedPlatformId}
               onChange={(e) => setSelectedPlatformId(e.target.value)}
@@ -351,8 +351,8 @@ export const AccountList: React.FC<AccountListProps> = ({
 
         {/* Tag Filter */}
         <div className="relative lg:col-span-2">
-          <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
-            <TagIcon className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0" />
+          <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
+            <TagIcon className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0 pointer-events-none" />
             <select
               value={selectedTagId}
               onChange={(e) => setSelectedTagId(e.target.value)}
@@ -370,8 +370,8 @@ export const AccountList: React.FC<AccountListProps> = ({
 
         {/* Sort Order */}
         <div className="relative lg:col-span-2">
-          <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
-            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0" />
+          <div className="flex items-center w-full bg-background border border-input rounded-lg px-2.5 py-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
+            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0 pointer-events-none" />
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as SortOrder)}

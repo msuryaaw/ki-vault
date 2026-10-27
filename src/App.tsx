@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ThemeProvider } from './stores/ThemeContext';
 import { VaultProvider, useVault } from './stores/VaultContext';
 import { Layout, NavTab } from './components/Layout';
 import { CreateVault } from './pages/CreateVault';
@@ -94,10 +95,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('overview');
 
   return (
-    <VaultProvider>
-      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-        <VaultContent activeTab={activeTab} setActiveTab={setActiveTab} />
-      </Layout>
-    </VaultProvider>
+    <ThemeProvider>
+      <VaultProvider>
+        <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+          <VaultContent activeTab={activeTab} setActiveTab={setActiveTab} />
+        </Layout>
+      </VaultProvider>
+    </ThemeProvider>
   );
 }

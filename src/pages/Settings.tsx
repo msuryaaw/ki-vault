@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useVault } from '../stores/VaultContext';
+import { useTheme } from '../stores/ThemeContext';
 import {
   getSettings,
   updateSecuritySettings,
@@ -78,10 +79,8 @@ export const Settings: React.FC = () => {
   const [restoreStatusMessage, setRestoreStatusMessage] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
 
-  // Appearance State (stored in localStorage for UX preference)
-  const [themePreference, setThemePreference] = useState<'system' | 'dark' | 'light'>(() => {
-    return (localStorage.getItem('kivault_theme') as 'system' | 'dark' | 'light') || 'system';
-  });
+  // Appearance State via global ThemeContext
+  const { theme: themePreference, setTheme: setThemePreference } = useTheme();
 
   // Load all initial data
   const loadData = useCallback(async () => {
@@ -322,7 +321,6 @@ export const Settings: React.FC = () => {
   // Update Appearance Theme
   const handleThemeChange = (newTheme: 'system' | 'dark' | 'light') => {
     setThemePreference(newTheme);
-    localStorage.setItem('kivault_theme', newTheme);
     setSuccessNotice(`Theme preference set to "${newTheme}".`);
     setTimeout(() => setSuccessNotice(null), 3000);
   };
