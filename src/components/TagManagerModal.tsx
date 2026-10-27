@@ -129,13 +129,13 @@ export const TagManagerModal: React.FC<TagManagerModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs">
       <div
-        className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]"
+        className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[85vh] overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="tag-manager-title"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4 shrink-0">
           <div className="flex items-center gap-2">
             <TagIcon className="h-5 w-5 text-primary" />
             <h2 id="tag-manager-title" className="text-base font-semibold text-foreground">
@@ -154,7 +154,7 @@ export const TagManagerModal: React.FC<TagManagerModalProps> = ({
 
         {/* Global Error Banner */}
         {error && (
-          <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive flex items-center gap-2">
+          <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive flex items-center gap-2 shrink-0">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span className="flex-1">{error.message}</span>
             <Button
@@ -169,40 +169,53 @@ export const TagManagerModal: React.FC<TagManagerModalProps> = ({
         )}
 
         {/* Create Tag Form */}
-        <form onSubmit={handleCreate} className="flex gap-2 mb-4 items-start">
-          <Input
-            placeholder="New tag name (e.g. Work, Personal, Finance)..."
-            value={newTagName}
-            onChange={(e) => setNewTagName(e.target.value)}
-            onClear={() => setNewTagName('')}
-            exampleText="Max 100 characters. e.g. Work, Personal, Finance."
-            maxLength={100}
-            showCharCount
-            disabled={isSubmitting}
-            className="flex-1 h-9 text-xs"
-          />
-          <Button
-            type="submit"
-            variant="primary"
-            size="sm"
-            loading={isSubmitting}
-            disabled={!newTagName.trim()}
-            className="h-9 px-3 text-xs flex items-center gap-1.5"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Add</span>
-          </Button>
+        <form onSubmit={handleCreate} className="mb-4 space-y-1.5 shrink-0">
+          {/* Top row: Character counter */}
+          <div className="flex justify-end text-[10px] font-mono text-muted-foreground/70">
+            <span className={newTagName.length >= 100 ? 'text-destructive font-bold' : ''}>
+              {newTagName.length} / 100
+            </span>
+          </div>
+
+          {/* Middle row: Input box and Add button */}
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="New tag name (e.g. Work, Personal, Finance)..."
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
+              onClear={() => setNewTagName('')}
+              maxLength={100}
+              disabled={isSubmitting}
+              className="h-9 text-xs"
+            />
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              loading={isSubmitting}
+              disabled={!newTagName.trim()}
+              className="h-9 px-3 text-xs shrink-0 flex items-center gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add</span>
+            </Button>
+          </div>
+
+          {/* Bottom row: Helper text */}
+          <p className="text-[11px] text-muted-foreground/80">
+            Max 100 characters. e.g. Work, Personal, Finance.
+          </p>
         </form>
 
         {/* Tag List */}
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[140px]">
+        <div className="overflow-y-auto space-y-2 pr-1 max-h-64 min-h-0">
           {loading ? (
-            <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground text-xs">
+            <div className="py-6 flex flex-col items-center justify-center gap-2 text-muted-foreground text-xs">
               <RefreshCw className="h-4 w-4 animate-spin text-primary" />
               <span>Loading tags...</span>
             </div>
           ) : tags.length === 0 ? (
-            <div className="py-8 text-center text-xs text-muted-foreground">
+            <div className="py-4 text-center text-xs text-muted-foreground">
               No tags yet. Create one above to organize your accounts.
             </div>
           ) : (
@@ -321,7 +334,7 @@ export const TagManagerModal: React.FC<TagManagerModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="mt-4 pt-3 border-t border-border/60 flex justify-end">
+        <div className="mt-4 pt-3 border-t border-border/60 flex justify-end shrink-0">
           <Button type="button" variant="outline" size="sm" onClick={onClose} className="text-xs">
             Done
           </Button>
