@@ -70,8 +70,8 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
           onChange={(e) => setVaultName(e.target.value)}
           onClear={() => setVaultName('')}
           placeholder="Personal Vault"
-          helperText="Nama pengenal untuk brankas kredensial ini (maks. 256 karakter)."
-          exampleText="Contoh: Personal Vault, Work Credentials"
+          helperText="Identifier name for this credential vault (max 256 characters)."
+          exampleText="e.g. Personal Vault, Work Credentials"
           maxLength={256}
           showCharCount
           disabled={loading}
@@ -83,9 +83,9 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
           value={vaultPath}
           onChange={(e) => setVaultPath(e.target.value)}
           onClear={() => setVaultPath('')}
-          placeholder="C:\Users\Nama\Documents\KiVault\kivault.kivault"
-          helperText="Lokasi file container terenkripsi (.kivault) akan disimpan."
-          exampleText="Contoh: C:\Users\Nama\Documents\KiVault\kivault.kivault atau kivault.kivault"
+          placeholder="C:\Users\Name\Documents\KiVault\kivault.kivault"
+          helperText="Location where the encrypted container file (.kivault) will be saved."
+          exampleText="e.g. C:\Users\Name\Documents\KiVault\kivault.kivault or kivault.kivault"
           disabled={loading}
           required
         />
@@ -96,9 +96,9 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Masukkan master password baru"
-            helperText="Kunci utama enkripsi vault (minimal 8 karakter). Jangan sampai lupa."
-            exampleText="Gunakan kombinasi huruf besar/kecil, angka, dan simbol."
+            placeholder="Enter new master password"
+            helperText="Primary key for vault encryption (minimum 8 characters). Do not forget it."
+            exampleText="Use a mix of uppercase/lowercase letters, numbers, and symbols."
             disabled={loading}
             required
           />
@@ -110,8 +110,8 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="Ketik ulang master password baru"
-          helperText="Masukkan kembali password yang sama persis untuk verifikasi."
+          placeholder="Retype new master password"
+          helperText="Re-enter the exact same password for verification."
           disabled={loading}
           required
         />

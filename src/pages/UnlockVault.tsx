@@ -58,9 +58,9 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
             value={vaultPath}
             onChange={(e) => setVaultPath(e.target.value)}
             onClear={() => setVaultPath('')}
-            placeholder="C:\Users\Nama\Documents\KiVault\kivault.kivault"
-            helperText="Masukkan path lengkap ke file vault Anda (.kivault)."
-            exampleText="Contoh: C:\Users\Nama\Documents\KiVault\kivault.kivault"
+            placeholder="C:\Users\Name\Documents\KiVault\kivault.kivault"
+            helperText="Enter the full path to your vault file (.kivault)."
+            exampleText="e.g. C:\Users\Name\Documents\KiVault\kivault.kivault"
             disabled={loading}
             required
           />
@@ -71,9 +71,9 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Masukkan master password Anda"
-          helperText="Password minimal 8 karakter. Gunakan kombinasi huruf, angka, dan simbol."
-          exampleText="Contoh: Minimal 8 karakter unik untuk proteksi vault"
+          placeholder="Enter your master password"
+          helperText="Minimum 8 characters. Use a combination of letters, numbers, and symbols."
+          exampleText="e.g. At least 8 unique characters for vault protection"
           disabled={loading}
           autoFocus
           required
@@ -81,7 +81,7 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
 
         {(clientError || error) && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/15 p-3 text-xs text-destructive">
-            {clientError || (error?.code === 'AuthenticationFailed' ? 'Incorrect master password or corrupted vault. Pastikan password yang dimasukkan benar.' : error?.message)}
+            {clientError || (error?.code === 'AuthenticationFailed' ? 'Incorrect master password or corrupted vault. Please verify your password.' : error?.message)}
           </div>
         )}
 

@@ -515,31 +515,31 @@ export const Settings: React.FC = () => {
                     <Input
                       label="Current Master Password"
                       type="password"
-                      placeholder="Masukkan master password aktif"
+                      placeholder="Enter current master password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      helperText="Password master yang saat ini digunakan."
+                      helperText="The master password currently in use."
                       required
                     />
 
                     <Input
                       label="New Master Password"
                       type="password"
-                      placeholder="Minimal 8 karakter baru"
+                      placeholder="Min. 8 characters"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      helperText="Minimal 8 karakter. Kombinasi huruf, angka, simbol."
-                      exampleText="Contoh: Harus berbeda dari password lama."
+                      helperText="Minimum 8 characters with letters, numbers, and symbols."
+                      exampleText="e.g. Must differ from current password."
                       required
                     />
 
                     <Input
                       label="Confirm New Password"
                       type="password"
-                      placeholder="Ulangi master password baru"
+                      placeholder="Repeat new master password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      helperText="Harus sama persis dengan password baru."
+                      helperText="Must match new password exactly."
                       required
                     />
                   </div>

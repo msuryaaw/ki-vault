@@ -160,14 +160,14 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
 
     // Check size limit: 2 MiB
     if (file.size > MAX_LOGO_SIZE_BYTES) {
-      setError(`File terlalu besar (${(file.size / (1024 * 1024)).toFixed(2)} MB). Maksimal ukuran file adalah 2 MB.`);
+      setError(`File is too large (${(file.size / (1024 * 1024)).toFixed(2)} MB). Maximum file size is 2 MB.`);
       return;
     }
 
     // Check MIME type with extension inference
     const mime = inferMimeType(file);
     if (!ALLOWED_MIME_TYPES.includes(mime)) {
-      setError(`Format file tidak didukung (${file.type || mime || 'unknown'}). Format yang diizinkan: PNG, JPG/JPEG, WebP, SVG.`);
+      setError(`Unsupported file format (${file.type || mime || 'unknown'}). Allowed formats: PNG, JPG/JPEG, WebP, SVG.`);
       return;
     }
 
@@ -355,7 +355,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
               Upload Logo
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Tambahkan logo platform atau akun kustom ke dalam vault terenkripsi.
+              Add custom platform or account logos to your encrypted vault.
             </p>
           </div>
 
@@ -402,7 +402,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
                       {selectedFile?.name}
                     </span>
                     <span className="text-[11px] text-primary group-hover:underline">
-                      Klik atau seret gambar lain untuk mengganti
+                      Click or drag another image to replace
                     </span>
                   </div>
                 ) : (
@@ -411,13 +411,13 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
                       <Image className="h-6 w-6" />
                     </div>
                     <span className="text-xs font-semibold text-foreground">
-                      Pilih file logo
+                      Choose logo file
                     </span>
                     <span className="text-[11px] text-muted-foreground mt-0.5">
-                      Drag & drop atau klik untuk memilih
+                      Drag & drop or click to browse
                     </span>
                     <span className="text-[10px] text-muted-foreground/80 font-mono mt-1">
-                      PNG, JPG, WebP, atau SVG (maks. 2 MB)
+                      PNG, JPG, WebP, or SVG (max 2 MB)
                     </span>
                   </>
                 )}
@@ -426,7 +426,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
               {/* Logo Name & Save */}
               <div className="flex items-end gap-2 pt-1">
                 <Input
-                  placeholder="Nama logo (contoh: Google, GitHub)..."
+                  placeholder="Logo name (e.g. Google, GitHub)..."
                   value={importName}
                   onChange={(e) => setImportName(e.target.value)}
                   onClear={() => setImportName('')}
@@ -444,7 +444,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
                   className="h-9 px-4 text-xs shrink-0 gap-1.5"
                 >
                   <Check className="h-3.5 w-3.5" />
-                  <span>Simpan</span>
+                  <span>Save</span>
                 </Button>
               </div>
             </div>
@@ -452,28 +452,28 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
             {/* Requirements Checklist Card */}
             <div className="md:col-span-5 rounded-xl border border-border/60 bg-muted/20 p-3.5 flex flex-col justify-between text-xs space-y-2">
               <span className="font-semibold text-foreground text-xs">
-                Persyaratan logo:
+                Logo requirements:
               </span>
               <ul className="space-y-1.5 text-[11px] text-muted-foreground">
                 <li className="flex items-start gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>Format: PNG, JPG, WebP, atau SVG</span>
+                  <span>Formats: PNG, JPG, WebP, or SVG</span>
                 </li>
                 <li className="flex items-start gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>Ukuran maksimal: 2 MB</span>
+                  <span>Maximum size: 2 MB</span>
                 </li>
                 <li className="flex items-start gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>Resolusi disarankan: 256 × 256 px (persegi)</span>
+                  <span>Recommended resolution: 256 × 256 px (square)</span>
                 </li>
                 <li className="flex items-start gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>Rasio 1:1 (akan dipotong otomatis jika tidak persegi)</span>
+                  <span>1:1 aspect ratio (cropped automatically if non-square)</span>
                 </li>
                 <li className="flex items-start gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>Gambar sebaiknya logo resmi atau ikon sederhana</span>
+                  <span>Official brand logo or simple icon recommended</span>
                 </li>
               </ul>
             </div>
@@ -490,7 +490,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
           ) : logos.length === 0 ? (
             <div className="py-16 text-center border border-dashed border-border rounded-xl flex flex-col items-center justify-center text-xs text-muted-foreground gap-2">
               <Image className="h-8 w-8 text-muted-foreground/50" />
-              <p>Belum ada logo yang disimpan. Gunakan formulir di atas untuk mengunggah logo platform atau akun.</p>
+              <p>No logos stored yet. Use the form above to upload platform or account logos.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

@@ -338,12 +338,12 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 onClear={() => setDisplayName('')}
-                helperText="Nama akun atau label pengenal."
-                exampleText="Contoh: Google, GitHub, atau nama akun lainnya."
+                helperText="Account name or display label."
+                exampleText="e.g. Personal Account, Work Profile."
                 maxLength={64}
                 showCharCount
                 isValid={displayName.trim().length >= 3}
-                error={displayName.length > 0 && displayName.trim().length < 3 ? 'Nama akun minimal 3 karakter.' : undefined}
+                error={displayName.length > 0 && displayName.trim().length < 3 ? 'Account title must be at least 3 characters.' : undefined}
                 disabled={loading}
               />
 
@@ -353,8 +353,8 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onClear={() => setUsername('')}
-                helperText="ID pengguna untuk login."
-                exampleText="Contoh: user123, myusername."
+                helperText="User identifier for login."
+                exampleText="e.g. user123, myusername."
                 maxLength={256}
                 showCharCount
                 disabled={loading}
@@ -367,12 +367,12 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onClear={() => setEmail('')}
-                helperText="Alamat email yang terasosiasi."
-                exampleText="Contoh: user@gmail.com atau user@example.com."
+                helperText="Associated email address."
+                exampleText="e.g. user@gmail.com or user@example.com."
                 maxLength={256}
                 showCharCount
                 isValid={email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}
-                error={email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? 'Masukkan alamat email yang valid.' : undefined}
+                error={email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? 'Please enter a valid email address.' : undefined}
                 disabled={loading}
               />
 
@@ -382,12 +382,12 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onClear={() => setUrl('')}
-                helperText="URL halaman login layanan."
-                exampleText="Contoh: https://google.com atau https://github.com."
+                helperText="Service login URL."
+                exampleText="e.g. https://google.com or https://github.com."
                 maxLength={2048}
                 showCharCount
                 isValid={url.length > 0 && /^https?:\/\/.+/i.test(url.trim())}
-                error={url.length > 0 && !/^https?:\/\/.+/i.test(url.trim()) ? 'Masukkan URL valid diawali http:// atau https://' : undefined}
+                error={url.length > 0 && !/^https?:\/\/.+/i.test(url.trim()) ? 'Enter a valid URL starting with http:// or https://' : undefined}
                 disabled={loading}
               />
             </div>
@@ -402,18 +402,18 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
               </span>
               {isEditing && (
                 <span className="text-[11px] text-muted-foreground font-normal italic">
-                  Kosongkan jika tidak ingin mengganti password
+                  Leave blank to keep current password
                 </span>
               )}
             </label>
             <Input
               type="password"
-              placeholder={isEditing ? 'Masukkan password baru untuk mengganti...' : 'Masukkan password akun...'}
+              placeholder={isEditing ? 'Enter new password to change...' : 'Enter account password...'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onClear={() => setPassword('')}
-              helperText="Password untuk akun ini (bebas sesuai kebutuhan akun)."
-              exampleText="Contoh: Gunakan kombinasi huruf, angka, dan simbol."
+              helperText="Password for this account."
+              exampleText="e.g. Use a combination of letters, numbers, and symbols."
               disabled={loading}
             />
           </div>
@@ -571,7 +571,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   </div>
                 )}
                 <span className="text-xs text-muted-foreground truncate">
-                  {logoId ? 'Logo khusus akun terpilih' : 'Menggunakan logo platform / default'}
+                  {logoId ? 'Custom account logo selected' : 'Using platform logo / default'}
                 </span>
               </div>
               {logoId ? (
@@ -582,7 +582,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   onClick={() => setLogoId(null)}
                   className="h-6 px-2 text-[10px] shrink-0"
                 >
-                  Hapus
+                  Remove
                 </Button>
               ) : (
                 <Button
@@ -592,7 +592,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   onClick={() => setIsLogoModalOpen(true)}
                   className="h-6 px-2 text-[10px] shrink-0"
                 >
-                  Pilih...
+                  Browse...
                 </Button>
               )}
             </div>
