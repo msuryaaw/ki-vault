@@ -16,6 +16,7 @@ import type {
 import type { CommandError } from '../types/vault';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { Dropdown } from '../components/Dropdown';
 import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
 import {
   Shield,
@@ -414,19 +415,18 @@ export const Settings: React.FC = () => {
                   <p className="text-[11px] text-muted-foreground">
                     Inactivity duration before vault locks automatically.
                   </p>
-                  <div className="flex items-center bg-background border border-input rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
-                    <select
-                      value={autoLock}
-                      onChange={(e) => setAutoLock(e.target.value)}
-                      className="w-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
-                    >
-                      <option value="1m">1 minute</option>
-                      <option value="5m">5 minutes (Default)</option>
-                      <option value="15m">15 minutes</option>
-                      <option value="30m">30 minutes</option>
-                      <option value="never">Never (Not recommended)</option>
-                    </select>
-                  </div>
+                  <Dropdown
+                    value={autoLock}
+                    onChange={(val) => setAutoLock(val)}
+                    ariaLabel="Auto-Lock Timeout"
+                    options={[
+                      { value: '1m', label: '1 minute' },
+                      { value: '5m', label: '5 minutes (Default)' },
+                      { value: '15m', label: '15 minutes' },
+                      { value: '30m', label: '30 minutes' },
+                      { value: 'never', label: 'Never (Not recommended)' },
+                    ]}
+                  />
                 </div>
 
                 {/* Clipboard Timeout */}
@@ -438,18 +438,17 @@ export const Settings: React.FC = () => {
                   <p className="text-[11px] text-muted-foreground">
                     Time before copied credentials are wiped from system clipboard.
                   </p>
-                  <div className="flex items-center bg-background border border-input rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
-                    <select
-                      value={clipboardTimeout}
-                      onChange={(e) => setClipboardTimeout(Number(e.target.value))}
-                      className="w-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
-                    >
-                      <option value={5}>5 seconds</option>
-                      <option value={15}>15 seconds (Default)</option>
-                      <option value={30}>30 seconds</option>
-                      <option value={60}>60 seconds</option>
-                    </select>
-                  </div>
+                  <Dropdown
+                    value={clipboardTimeout}
+                    onChange={(val) => setClipboardTimeout(Number(val))}
+                    ariaLabel="Clipboard Auto-Clear"
+                    options={[
+                      { value: 5, label: '5 seconds' },
+                      { value: 15, label: '15 seconds (Default)' },
+                      { value: 30, label: '30 seconds' },
+                      { value: 60, label: '60 seconds' },
+                    ]}
+                  />
                 </div>
               </div>
 

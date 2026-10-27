@@ -23,6 +23,7 @@ import { AccountFormModal } from '../components/AccountFormModal';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
 import { TagManagerModal } from '../components/TagManagerModal';
 import { PlatformLogo } from '../components/PlatformLogo';
+import { Dropdown } from '../components/Dropdown';
 import {
   Users,
   Star,
@@ -326,59 +327,54 @@ export const AccountList: React.FC<AccountListProps> = ({
 
         {/* Platform Filter */}
         <div className="relative lg:col-span-2 flex items-center">
-          <div className="flex items-center w-full h-9 bg-background border border-input rounded-lg px-2.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
-            <Globe className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0 pointer-events-none" />
-            <select
-              value={selectedPlatformId}
-              onChange={(e) => setSelectedPlatformId(e.target.value)}
-              className="w-full h-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
-            >
-              <option value="all">All Platforms ({platforms.length})</option>
-              {platforms.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.account_count})
-                </option>
-              ))}
-            </select>
-          </div>
+          <Dropdown
+            value={selectedPlatformId}
+            onChange={(val) => setSelectedPlatformId(val)}
+            prefixIcon={<Globe className="h-3.5 w-3.5" />}
+            ariaLabel="Filter accounts by platform"
+            options={[
+              { value: 'all', label: `All Platforms (${platforms.length})` },
+              ...platforms.map((p) => ({
+                value: p.id,
+                label: `${p.name} (${p.account_count})`,
+              })),
+            ]}
+          />
         </div>
 
         {/* Tag Filter */}
         <div className="relative lg:col-span-2 flex items-center">
-          <div className="flex items-center w-full h-9 bg-background border border-input rounded-lg px-2.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
-            <TagIcon className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0 pointer-events-none" />
-            <select
-              value={selectedTagId}
-              onChange={(e) => setSelectedTagId(e.target.value)}
-              className="w-full h-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
-            >
-              <option value="all">All Tags ({tags.length})</option>
-              {tags.map((t) => (
-                <option key={t.id} value={t.id}>
-                  #{t.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Dropdown
+            value={selectedTagId}
+            onChange={(val) => setSelectedTagId(val)}
+            prefixIcon={<TagIcon className="h-3.5 w-3.5" />}
+            ariaLabel="Filter accounts by tag"
+            options={[
+              { value: 'all', label: `All Tags (${tags.length})` },
+              ...tags.map((t) => ({
+                value: t.id,
+                label: `#${t.name}`,
+              })),
+            ]}
+          />
         </div>
 
         {/* Sort Order */}
         <div className="relative lg:col-span-2 flex items-center">
-          <div className="flex items-center w-full h-9 bg-background border border-input rounded-lg px-2.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors">
-            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0 pointer-events-none" />
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-              className="w-full h-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
-            >
-              <option value="updated_at_desc">Recently Updated</option>
-              <option value="updated_at_asc">Oldest Updated</option>
-              <option value="title_asc">Title (A - Z)</option>
-              <option value="title_desc">Title (Z - A)</option>
-              <option value="created_at_desc">Recently Created</option>
-              <option value="created_at_asc">Oldest Created</option>
-            </select>
-          </div>
+          <Dropdown
+            value={sortOrder}
+            onChange={(val) => setSortOrder(val as SortOrder)}
+            prefixIcon={<ArrowUpDown className="h-3.5 w-3.5" />}
+            ariaLabel="Sort accounts"
+            options={[
+              { value: 'updated_at_desc', label: 'Recently Updated' },
+              { value: 'updated_at_asc', label: 'Oldest Updated' },
+              { value: 'title_asc', label: 'Title (A - Z)' },
+              { value: 'title_desc', label: 'Title (Z - A)' },
+              { value: 'created_at_desc', label: 'Recently Created' },
+              { value: 'created_at_asc', label: 'Oldest Created' },
+            ]}
+          />
         </div>
 
         {/* Favorite toggle (only shown when not already locked into Favorites view) */}

@@ -13,6 +13,7 @@ import { Input } from './Input';
 import { TagSelector } from './TagSelector';
 import { LogoManagerModal } from './LogoManagerModal';
 import { PlatformLogo } from './PlatformLogo';
+import { Dropdown } from './Dropdown';
 import {
   User,
   Globe,
@@ -307,22 +308,17 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 No platforms available. Please create a platform first before adding accounts.
               </p>
             ) : (
-              <div className="flex items-center w-full bg-background border border-input rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
-                <select
-                  value={platformId}
-                  onChange={(e) => setPlatformId(e.target.value)}
-                  disabled={loading}
-                  required
-                  className="w-full bg-transparent text-xs text-foreground focus:outline-none cursor-pointer"
-                >
-                  <option value="" disabled>Select platform...</option>
-                  {platforms.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} {p.category ? `(${p.category})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Dropdown
+                value={platformId}
+                onChange={(val) => setPlatformId(val)}
+                disabled={loading}
+                placeholder="Select platform..."
+                ariaLabel="Select platform"
+                options={platforms.map((p) => ({
+                  value: p.id,
+                  label: `${p.name}${p.category ? ` (${p.category})` : ''}`,
+                }))}
+              />
             )}
           </div>
 
