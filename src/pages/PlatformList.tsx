@@ -56,6 +56,7 @@ export const PlatformList: React.FC<PlatformListProps> = ({
 }) => {
   const [platforms, setPlatforms] = useState<PlatformSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [error, setError] = useState<CommandError | null>(null);
 
@@ -93,6 +94,21 @@ export const PlatformList: React.FC<PlatformListProps> = ({
       setLoading(false);
     }
   }, []);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setError(null);
+    try {
+      await Promise.all([
+        listPlatforms().then((data) => setPlatforms(data)),
+        new Promise((resolve) => setTimeout(resolve, 500)),
+      ]);
+    } catch (err) {
+      setError(err as CommandError);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const loadPlatformAccounts = useCallback(async (platformId: string) => {
     setAccountsLoading(true);
@@ -427,12 +443,13 @@ export const PlatformList: React.FC<PlatformListProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={loadPlatforms}
-                disabled={loading}
+                onClick={handleRefresh}
+                disabled={isRefreshing}
                 title="Refresh platform list"
-                className="h-9 px-3 text-xs"
+                className="h-9 px-3 text-xs gap-1.5"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
               </Button>
               <Button
                 variant="primary"

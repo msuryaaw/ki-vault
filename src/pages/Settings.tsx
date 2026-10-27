@@ -44,6 +44,7 @@ export const Settings: React.FC = () => {
   const [settings, setSettings] = useState<VaultSettings | null>(null);
   const [securityStatus, setSecurityStatus] = useState<SecurityStatus | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [savingSection, setSavingSection] = useState<string | null>(null);
   const [error, setError] = useState<CommandError | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
@@ -110,6 +111,33 @@ export const Settings: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setError(null);
+    try {
+      const [settingsData, secData] = await Promise.all([
+        getSettings(),
+        getSecurityStatus().catch(() => null),
+        new Promise((resolve) => setTimeout(resolve, 500)),
+      ]);
+      setSettings(settingsData);
+      setSecurityStatus(secData);
+
+      setAutoLock(settingsData.security.auto_lock);
+      setClipboardTimeout(settingsData.security.clipboard_timeout);
+
+      setGenLength(settingsData.password_generator.length);
+      setGenUppercase(settingsData.password_generator.use_uppercase);
+      setGenLowercase(settingsData.password_generator.use_lowercase);
+      setGenNumbers(settingsData.password_generator.use_numbers);
+      setGenSymbols(settingsData.password_generator.use_symbols);
+    } catch (err) {
+      setError(err as CommandError);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -349,11 +377,11 @@ export const Settings: React.FC = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={loadData}
-          disabled={loading}
+          onClick={handleRefresh}
+          disabled={isRefreshing}
           className="h-9 px-3 text-xs gap-1.5 self-start sm:self-auto"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
           <span>Refresh</span>
         </Button>
       </div>

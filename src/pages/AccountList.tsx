@@ -57,6 +57,7 @@ export const AccountList: React.FC<AccountListProps> = ({
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
   const [platforms, setPlatforms] = useState<PlatformSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<CommandError | null>(null);
 
   // Selected account for Account Detail View (Phase 6 Step 5)
@@ -141,6 +142,34 @@ export const AccountList: React.FC<AccountListProps> = ({
       setLoading(false);
     }
   }, [searchQuery, selectedPlatformId, selectedTagId, effectiveFavoriteOnly, sortOrder]);
+
+  // Manual refresh with minimum 500ms spinner duration
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setError(null);
+    try {
+      const trimmedQuery = searchQuery.trim();
+      const platformFilter = selectedPlatformId === 'all' ? null : selectedPlatformId;
+      const tagFilter = selectedTagId === 'all' ? null : selectedTagId;
+
+      await Promise.all([
+        searchAccounts(
+          trimmedQuery,
+          {
+            platform_id: platformFilter,
+            tag_id: tagFilter,
+            favorite_only: effectiveFavoriteOnly ? true : null,
+          },
+          sortOrder
+        ).then((data) => setAccounts(data)),
+        new Promise((resolve) => setTimeout(resolve, 500)),
+      ]);
+    } catch (err) {
+      setError(err as CommandError);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     loadPlatformsList();
@@ -261,12 +290,13 @@ export const AccountList: React.FC<AccountListProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchAccounts}
-            disabled={loading}
-            className="h-9 px-3 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            title="Refresh account list"
+            className="h-9 px-3 text-xs gap-1.5"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
           </Button>
 
           <Button
@@ -407,7 +437,7 @@ export const AccountList: React.FC<AccountListProps> = ({
       )}
 
       {/* Content Area: Loading, Empty, or Account Cards */}
-      {loading ? (
+      {loading && accounts.length === 0 ? (
         <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
           <RefreshCw className="h-8 w-8 animate-spin text-primary" />
           <p className="text-xs text-muted-foreground">Retrieving accounts from encrypted vault...</p>

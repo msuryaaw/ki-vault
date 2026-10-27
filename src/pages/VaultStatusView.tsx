@@ -28,6 +28,7 @@ export const VaultStatusView: React.FC = () => {
   const [securityStatus, setSecurityStatus] = useState<SecurityStatus | null>(null);
   const [passwordHealth, setPasswordHealth] = useState<PasswordHealth | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<CommandError | null>(null);
 
   const fetchSecurityData = useCallback(async () => {
@@ -55,7 +56,26 @@ export const VaultStatusView: React.FC = () => {
   }, [fetchSecurityData]);
 
   const handleRefreshAll = async () => {
-    await Promise.all([refreshStatus(), fetchSecurityData()]);
+    setIsRefreshing(true);
+    setError(null);
+    try {
+      await Promise.all([
+        refreshStatus(),
+        (async () => {
+          const [sec, health] = await Promise.all([
+            getSecurityStatus(),
+            getPasswordHealth(),
+          ]);
+          setSecurityStatus(sec);
+          setPasswordHealth(health);
+        })(),
+        new Promise((resolve) => setTimeout(resolve, 500)),
+      ]);
+    } catch (err) {
+      setError(err as CommandError);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const formatDate = (timestampSecs: number | undefined) => {
@@ -83,11 +103,11 @@ export const VaultStatusView: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={handleRefreshAll}
-            disabled={loading || vaultLoading}
+            disabled={isRefreshing || vaultLoading}
             title="Refresh security status"
             className="h-9 px-3 text-xs gap-1.5"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading || vaultLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </Button>
           <Button

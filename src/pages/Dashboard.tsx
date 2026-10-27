@@ -38,6 +38,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const { summary } = useVault();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<CommandError | null>(null);
 
   const loadStats = useCallback(async () => {
@@ -52,6 +53,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setLoading(false);
     }
   }, []);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setError(null);
+    try {
+      await Promise.all([
+        fetchDashboardStats().then((data) => setStats(data)),
+        new Promise((resolve) => setTimeout(resolve, 500)),
+      ]);
+    } catch (err) {
+      setError(err as CommandError);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     loadStats();
@@ -87,12 +103,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={loadStats}
-            disabled={loading}
+            onClick={handleRefresh}
+            disabled={isRefreshing}
             title="Refresh overview metrics"
-            className="h-9 px-3 text-xs"
+            className="h-9 px-3 text-xs gap-1.5"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
           </Button>
 
           {onViewVaultStatus && (
