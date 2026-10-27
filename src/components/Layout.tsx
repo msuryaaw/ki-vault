@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useVault } from '../stores/VaultContext';
+import { TagManagerModal } from './TagManagerModal';
+import { LogoManagerModal } from './LogoManagerModal';
 import {
   Shield,
   Lock,
@@ -36,6 +38,8 @@ export const Layout: React.FC<LayoutProps> = ({
   children,
 }) => {
   const { status, summary, lockVault } = useVault();
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+  const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
 
   return (
     <div className="flex h-screen w-screen bg-background text-foreground overflow-hidden font-sans select-none">
@@ -139,21 +143,29 @@ export const Layout: React.FC<LayoutProps> = ({
               <span>Vault Details</span>
             </button>
 
-            {/* Disabled placeholders for subsequent steps */}
+            {/* Tags modal trigger */}
             <button
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground/60 opacity-60 cursor-not-allowed"
-              title="Available in Phase 6 Step 4 / Phase 7"
-              disabled
+              onClick={() => setIsTagModalOpen(true)}
+              disabled={status !== 'Unlocked'}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                status !== 'Unlocked'
+                  ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+              }`}
             >
               <Tag className="h-4 w-4" />
               <span>Tags</span>
             </button>
 
-
+            {/* Logo Manager modal trigger */}
             <button
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground/60 opacity-60 cursor-not-allowed"
-              title="Available in Phase 7 (Logo Manager)"
-              disabled
+              onClick={() => setIsLogoModalOpen(true)}
+              disabled={status !== 'Unlocked'}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                status !== 'Unlocked'
+                  ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+              }`}
             >
               <Image className="h-4 w-4" />
               <span>Logo Manager</span>
@@ -229,6 +241,18 @@ export const Layout: React.FC<LayoutProps> = ({
           {children}
         </div>
       </main>
+
+      {/* Tag Manager Modal */}
+      <TagManagerModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+      />
+
+      {/* Logo Manager Modal */}
+      <LogoManagerModal
+        isOpen={isLogoModalOpen}
+        onClose={() => setIsLogoModalOpen(false)}
+      />
     </div>
   );
 };
