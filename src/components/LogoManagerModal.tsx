@@ -300,13 +300,13 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs">
       <div
-        className="relative w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh] overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="logo-manager-title"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4 shrink-0">
           <div className="flex items-center gap-2">
             <Image className="h-5 w-5 text-primary" />
             <div>
@@ -330,7 +330,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
 
         {/* Global Error Banner */}
         {error && (
-          <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive flex items-center gap-2">
+          <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive flex items-center gap-2 shrink-0">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span className="flex-1">{error}</span>
             <Button
@@ -347,7 +347,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
         {/* Import New Logo / Upload Logo Section */}
         <form
           onSubmit={handleImportSubmit}
-          className="rounded-2xl border border-border/80 bg-background/60 p-4 mb-4 space-y-4"
+          className="rounded-2xl border border-border/80 bg-background/60 p-4 mb-4 space-y-4 shrink-0"
         >
           <div>
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -424,28 +424,37 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
               </label>
 
               {/* Logo Name & Save */}
-              <div className="flex items-end gap-2 pt-1">
-                <Input
-                  placeholder="Logo name (e.g. Google, GitHub)..."
-                  value={importName}
-                  onChange={(e) => setImportName(e.target.value)}
-                  onClear={() => setImportName('')}
-                  disabled={isImporting}
-                  maxLength={64}
-                  showCharCount
-                  className="h-9 text-xs"
-                />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                  loading={isImporting}
-                  disabled={!selectedFile || !importName.trim()}
-                  className="h-9 px-4 text-xs shrink-0 gap-1.5"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  <span>Save</span>
-                </Button>
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground/70">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-sans">
+                    Logo Name
+                  </span>
+                  <span className={importName.length >= 64 ? 'text-destructive font-bold' : ''}>
+                    {importName.length} / 64
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Logo name (e.g. Google, GitHub)..."
+                    value={importName}
+                    onChange={(e) => setImportName(e.target.value)}
+                    onClear={() => setImportName('')}
+                    disabled={isImporting}
+                    maxLength={64}
+                    className="h-9 text-xs"
+                  />
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    loading={isImporting}
+                    disabled={!selectedFile || !importName.trim()}
+                    className="h-9 px-4 text-xs shrink-0 gap-1.5"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Save</span>
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -481,7 +490,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
         </form>
 
         {/* Gallery Grid */}
-        <div className="flex-1 overflow-y-auto pr-1 min-h-[220px]">
+        <div className="flex-1 overflow-y-auto pr-1 min-h-0">
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-2 text-muted-foreground text-xs">
               <RefreshCw className="h-5 w-5 animate-spin text-primary" />
@@ -644,7 +653,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
+        <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between shrink-0">
           <span className="text-[11px] text-muted-foreground">
             {selectedLogoId && onSelectLogo
               ? 'Click the selected logo to unassign, or select another.'
