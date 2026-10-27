@@ -238,6 +238,31 @@ export const AccountList: React.FC<AccountListProps> = ({
     }
   };
 
+  const handleToggleFavorite = async (e: React.MouseEvent, acc: AccountSummary) => {
+    e.stopPropagation();
+    const newStatus = !acc.is_favorite;
+
+    // Optimistic UI update
+    setAccounts((prev) =>
+      prev.map((a) => (a.id === acc.id ? { ...a, is_favorite: newStatus } : a))
+    );
+
+    try {
+      await updateAccount(acc.id, { is_favorite: newStatus });
+      // If we are currently filtering by favorites only and the account was unfavorited,
+      // refresh or filter so the list remains accurate
+      if (effectiveFavoriteOnly && !newStatus) {
+        setAccounts((prev) => prev.filter((a) => a.id !== acc.id));
+      }
+    } catch (err) {
+      // Revert optimistic update on failure
+      setAccounts((prev) =>
+        prev.map((a) => (a.id === acc.id ? { ...a, is_favorite: acc.is_favorite } : a))
+      );
+      setError(err as CommandError);
+    }
+  };
+
   // Format timestamp helper
   const formatDate = (timestampMs: number) => {
     if (!timestampMs) return '-';
@@ -515,19 +540,22 @@ export const AccountList: React.FC<AccountListProps> = ({
                     </div>
                   </div>
 
-                  {/* Favorite Star Badge per docs/ui-ux-spec.md §6 */}
-                  <div
-                    className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  {/* Favorite Star Button per docs/ui-ux-spec.md §6 */}
+                  <button
+                    type="button"
+                    onClick={(e) => handleToggleFavorite(e, acc)}
+                    className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                       acc.is_favorite
-                        ? 'text-amber-500 bg-amber-500/10'
-                        : 'text-muted-foreground/30'
+                        ? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+                        : 'text-muted-foreground/30 hover:text-amber-500 hover:bg-amber-500/10'
                     }`}
-                    title={acc.is_favorite ? 'Favorite account' : 'Not marked as favorite'}
+                    title={acc.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+                    aria-label={acc.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
                   >
                     <Star
                       className={`h-4 w-4 ${acc.is_favorite ? 'fill-amber-500' : ''}`}
                     />
-                  </div>
+                  </button>
                 </div>
 
                 {/* Identity info: Username / Email */}
