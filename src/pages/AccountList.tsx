@@ -43,15 +43,12 @@ import {
 
 
 interface AccountListProps {
-  /**
-   * If true, forces the view to only show favorite accounts (for the 'Favorites' nav tab)
-   */
-  favoriteOnlyMode?: boolean;
+  initialFavoriteOnly?: boolean;
   onNavigateToPlatforms?: () => void;
 }
 
 export const AccountList: React.FC<AccountListProps> = ({
-  favoriteOnlyMode = false,
+  initialFavoriteOnly = false,
   onNavigateToPlatforms,
 }) => {
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
@@ -77,10 +74,10 @@ export const AccountList: React.FC<AccountListProps> = ({
   const [tags, setTags] = useState<Tag[]>([]);
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>('updated_at_desc');
-  // Local favorite toggle (only active when not in forced favoriteOnlyMode)
-  const [localFavoriteOnly, setLocalFavoriteOnly] = useState<boolean>(false);
+  // Local favorite toggle (initialized from optional prop)
+  const [localFavoriteOnly, setLocalFavoriteOnly] = useState<boolean>(initialFavoriteOnly);
 
-  const effectiveFavoriteOnly = favoriteOnlyMode || localFavoriteOnly;
+  const effectiveFavoriteOnly = localFavoriteOnly;
 
   // Load platforms for the platform filter dropdown
   const loadPlatformsList = useCallback(async () => {
@@ -283,18 +280,18 @@ export const AccountList: React.FC<AccountListProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            {favoriteOnlyMode ? (
+            {effectiveFavoriteOnly ? (
               <Star className="h-6 w-6 text-amber-400 fill-amber-400/20" />
             ) : (
               <Users className="h-6 w-6 text-primary" />
             )}
-            <span>{favoriteOnlyMode ? 'Favorite Accounts' : 'All Accounts'}</span>
+            <span>{effectiveFavoriteOnly ? 'Favorite Accounts' : 'All Accounts'}</span>
             <span className="text-xs px-2.5 py-0.5 rounded-full font-mono font-medium bg-muted text-muted-foreground border border-border">
               {accounts.length}
             </span>
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {favoriteOnlyMode
+            {effectiveFavoriteOnly
               ? 'Quick access to your starred and frequently used credentials.'
               : 'Secure overview of all credentials organized by platform and identity.'}
           </p>
@@ -432,22 +429,20 @@ export const AccountList: React.FC<AccountListProps> = ({
           />
         </div>
 
-        {/* Favorite toggle (only shown when not already locked into Favorites view) */}
-        {!favoriteOnlyMode && (
-          <div className="lg:col-span-2 flex items-center justify-end">
-            <button
-              onClick={() => setLocalFavoriteOnly(!localFavoriteOnly)}
-              className={`w-full h-9 flex items-center justify-center gap-1.5 px-3 rounded-lg text-xs font-medium border transition-colors ${
-                localFavoriteOnly
-                  ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                  : 'bg-background text-muted-foreground border-input hover:text-foreground'
-              }`}
-            >
-              <Star className={`h-3.5 w-3.5 ${localFavoriteOnly ? 'fill-amber-500' : ''}`} />
-              <span>Favorites Only</span>
-            </button>
-          </div>
-        )}
+        {/* Favorite toggle */}
+        <div className="lg:col-span-2 flex items-center justify-end">
+          <button
+            onClick={() => setLocalFavoriteOnly(!localFavoriteOnly)}
+            className={`w-full h-9 flex items-center justify-center gap-1.5 px-3 rounded-lg text-xs font-medium border transition-colors ${
+              localFavoriteOnly
+                ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+                : 'bg-background text-muted-foreground border-input hover:text-foreground'
+            }`}
+          >
+            <Star className={`h-3.5 w-3.5 ${localFavoriteOnly ? 'fill-amber-500' : ''}`} />
+            <span>Favorites Only</span>
+          </button>
+        </div>
       </div>
 
       {/* Error Banner */}

@@ -12,9 +12,16 @@ import { Settings } from './pages/Settings';
 import { Loader2 } from 'lucide-react';
 import { useAutoLockPing } from './hooks/useAutoLockPing';
 
-const VaultContent: React.FC<{ activeTab: NavTab; setActiveTab: (tab: NavTab) => void }> = ({
+const VaultContent: React.FC<{
+  activeTab: NavTab;
+  setActiveTab: (tab: NavTab) => void;
+  accountsInitialFavoriteOnly: boolean;
+  onNavigateToFavorites: () => void;
+}> = ({
   activeTab,
   setActiveTab,
+  accountsInitialFavoriteOnly,
+  onNavigateToFavorites,
 }) => {
   const { status, loading, refreshStatus } = useVault();
 
@@ -43,14 +50,8 @@ const VaultContent: React.FC<{ activeTab: NavTab; setActiveTab: (tab: NavTab) =>
       case 'accounts':
         return (
           <AccountList
-            favoriteOnlyMode={false}
-            onNavigateToPlatforms={() => setActiveTab('platforms')}
-          />
-        );
-      case 'favorites':
-        return (
-          <AccountList
-            favoriteOnlyMode={true}
+            key={accountsInitialFavoriteOnly ? 'accounts-favorites' : 'accounts-all'}
+            initialFavoriteOnly={accountsInitialFavoriteOnly}
             onNavigateToPlatforms={() => setActiveTab('platforms')}
           />
         );
@@ -66,7 +67,7 @@ const VaultContent: React.FC<{ activeTab: NavTab; setActiveTab: (tab: NavTab) =>
           <Dashboard
             onViewVaultStatus={() => setActiveTab('vault-details')}
             onNavigateToAccounts={() => setActiveTab('accounts')}
-            onNavigateToFavorites={() => setActiveTab('favorites')}
+            onNavigateToFavorites={onNavigateToFavorites}
             onNavigateToPlatforms={() => setActiveTab('platforms')}
             onAddAccountClick={() => setActiveTab('accounts')}
           />
@@ -93,12 +94,29 @@ const VaultContent: React.FC<{ activeTab: NavTab; setActiveTab: (tab: NavTab) =>
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('overview');
+  const [accountsInitialFavoriteOnly, setAccountsInitialFavoriteOnly] = useState<boolean>(false);
+
+  const handleTabChange = (tab: NavTab) => {
+    // When navigating to any tab (including normal Accounts via sidebar), reset the one-time favorite filter
+    setAccountsInitialFavoriteOnly(false);
+    setActiveTab(tab);
+  };
+
+  const handleNavigateToFavorites = () => {
+    setAccountsInitialFavoriteOnly(true);
+    setActiveTab('accounts');
+  };
 
   return (
     <ThemeProvider>
       <VaultProvider>
-        <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-          <VaultContent activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Layout activeTab={activeTab} onTabChange={handleTabChange}>
+          <VaultContent
+            activeTab={activeTab}
+            setActiveTab={handleTabChange}
+            accountsInitialFavoriteOnly={accountsInitialFavoriteOnly}
+            onNavigateToFavorites={handleNavigateToFavorites}
+          />
         </Layout>
       </VaultProvider>
     </ThemeProvider>

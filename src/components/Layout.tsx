@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Users,
   Globe,
-  Star,
   Sliders,
   LogOut,
 } from 'lucide-react';
@@ -16,7 +15,6 @@ import {
 export type NavTab =
   | 'overview'
   | 'accounts'
-  | 'favorites'
   | 'platforms'
   | 'vault-details'
   | 'settings';
@@ -87,22 +85,6 @@ export const Layout: React.FC<LayoutProps> = ({
             >
               <Users className={`h-4 w-4 ${activeTab === 'accounts' && status === 'Unlocked' ? 'text-primary' : ''}`} />
               <span>Accounts</span>
-            </button>
-
-            {/* Favorites tab (Phase 6 Step 4) */}
-            <button
-              onClick={() => onTabChange('favorites')}
-              disabled={status !== 'Unlocked'}
-              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                status !== 'Unlocked'
-                  ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
-                  : activeTab === 'favorites'
-                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
-                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-              }`}
-            >
-              <Star className={`h-4 w-4 ${activeTab === 'favorites' && status === 'Unlocked' ? 'text-amber-500 fill-amber-500' : ''}`} />
-              <span>Favorites</span>
             </button>
 
             {/* Platforms tab (Phase 6 Step 3) */}
