@@ -12,13 +12,7 @@ import {
   LogOut,
 } from 'lucide-react';
 
-export type NavTab =
-  | 'overview'
-  | 'accounts'
-  | 'platforms'
-  | 'vault-details'
-  | 'settings';
-
+export type NavTab = 'overview' | 'accounts' | 'platforms' | 'vault-details' | 'settings';
 
 interface LayoutProps {
   activeTab: NavTab;
@@ -26,11 +20,7 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-export const Layout: React.FC<LayoutProps> = ({
-  activeTab,
-  onTabChange,
-  children,
-}) => {
+export const Layout: React.FC<LayoutProps> = ({ activeTab, onTabChange, children }) => {
   const { status, summary, lockVault } = useVault();
 
   return (
@@ -63,11 +53,13 @@ export const Layout: React.FC<LayoutProps> = ({
                 status !== 'Unlocked'
                   ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
                   : activeTab === 'overview'
-                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
-                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               }`}
             >
-              <LayoutDashboard className={`h-4 w-4 ${activeTab === 'overview' && status === 'Unlocked' ? 'text-primary' : ''}`} />
+              <LayoutDashboard
+                className={`h-4 w-4 ${activeTab === 'overview' && status === 'Unlocked' ? 'text-primary' : ''}`}
+              />
               <span>Overview</span>
             </button>
 
@@ -79,11 +71,13 @@ export const Layout: React.FC<LayoutProps> = ({
                 status !== 'Unlocked'
                   ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
                   : activeTab === 'accounts'
-                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
-                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               }`}
             >
-              <Users className={`h-4 w-4 ${activeTab === 'accounts' && status === 'Unlocked' ? 'text-primary' : ''}`} />
+              <Users
+                className={`h-4 w-4 ${activeTab === 'accounts' && status === 'Unlocked' ? 'text-primary' : ''}`}
+              />
               <span>Accounts</span>
             </button>
 
@@ -95,11 +89,13 @@ export const Layout: React.FC<LayoutProps> = ({
                 status !== 'Unlocked'
                   ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
                   : activeTab === 'platforms'
-                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
-                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               }`}
             >
-              <Globe className={`h-4 w-4 ${activeTab === 'platforms' && status === 'Unlocked' ? 'text-primary' : ''}`} />
+              <Globe
+                className={`h-4 w-4 ${activeTab === 'platforms' && status === 'Unlocked' ? 'text-primary' : ''}`}
+              />
               <span>Platforms</span>
             </button>
 
@@ -111,11 +107,13 @@ export const Layout: React.FC<LayoutProps> = ({
                 status !== 'Unlocked'
                   ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
                   : activeTab === 'vault-details'
-                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
-                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               }`}
             >
-              <KeyRound className={`h-4 w-4 ${activeTab === 'vault-details' && status === 'Unlocked' ? 'text-primary' : ''}`} />
+              <KeyRound
+                className={`h-4 w-4 ${activeTab === 'vault-details' && status === 'Unlocked' ? 'text-primary' : ''}`}
+              />
               <span>Vault Details</span>
             </button>
 
@@ -127,16 +125,17 @@ export const Layout: React.FC<LayoutProps> = ({
                 status !== 'Unlocked'
                   ? 'text-muted-foreground/50 opacity-50 cursor-not-allowed'
                   : activeTab === 'settings'
-                  ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
-                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    ? 'bg-accent text-accent-foreground shadow-sm font-semibold'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               }`}
             >
-              <Sliders className={`h-4 w-4 ${activeTab === 'settings' && status === 'Unlocked' ? 'text-primary' : ''}`} />
+              <Sliders
+                className={`h-4 w-4 ${activeTab === 'settings' && status === 'Unlocked' ? 'text-primary' : ''}`}
+              />
               <span>Settings</span>
             </button>
           </nav>
         </div>
-
 
         {/* Footer info & Vault Lock Status */}
         <div className="p-4 border-t border-border space-y-3">
@@ -185,9 +184,7 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
         </header>
 
-        <div className="p-8 flex-1 flex items-start justify-center">
-          {children}
-        </div>
+        <div className="p-8 flex-1 flex items-start justify-center">{children}</div>
       </main>
     </div>
   );

@@ -34,7 +34,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigateToFavorites,
   onNavigateToPlatforms,
 }) => {
-
   const { summary } = useVault();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -78,7 +77,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
       onAddAccountClick();
     }
   };
-
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 text-left">
@@ -137,15 +135,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-
-
       {/* Error state */}
       {error && !loading && (
         <div className="rounded-xl border border-destructive/40 bg-destructive/15 p-4 text-xs text-destructive flex items-start gap-3">
           <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="font-semibold">Failed to load overview data</p>
-            <p className="opacity-90">{error.message} (Code: {error.code})</p>
+            <p className="opacity-90">
+              {error.message} (Code: {error.code})
+            </p>
             <Button
               variant="outline"
               size="sm"
@@ -211,9 +209,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }`}
             >
               <div className="flex items-center justify-between text-muted-foreground">
-                <span className="text-xs font-semibold uppercase tracking-wider">
-                  Favorites
-                </span>
+                <span className="text-xs font-semibold uppercase tracking-wider">Favorites</span>
                 <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
                   <Star className="h-4 w-4 fill-amber-400/20" />
                 </div>
@@ -236,9 +232,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }`}
             >
               <div className="flex items-center justify-between text-muted-foreground">
-                <span className="text-xs font-semibold uppercase tracking-wider">
-                  Platforms
-                </span>
+                <span className="text-xs font-semibold uppercase tracking-wider">Platforms</span>
                 <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform">
                   <Globe className="h-4 w-4" />
                 </div>
@@ -253,7 +247,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </p>
             </div>
 
-
             {/* Card 4: Security Summary */}
             <div className="rounded-xl border border-border bg-card p-5 space-y-2 shadow-sm relative overflow-hidden group hover:border-emerald-500/40 transition-colors">
               <div className="flex items-center justify-between text-muted-foreground">
@@ -265,7 +258,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               </div>
               <div className="text-xl font-bold text-emerald-400 tracking-tight flex items-center gap-1.5 pt-1">
-                <span>{stats.security.vault_integrity === 'OK' ? 'Healthy' : stats.security.vault_integrity}</span>
+                <span>
+                  {stats.security.vault_integrity === 'OK'
+                    ? 'Healthy'
+                    : stats.security.vault_integrity}
+                </span>
               </div>
               <p className="text-[11px] text-muted-foreground font-mono">
                 {stats.security.encryption} • {stats.security.kdf}
@@ -293,7 +290,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-1.5">
                   <span className="text-xs text-muted-foreground font-medium">Weak Passwords</span>
                   <div className="flex items-baseline gap-2">
-                    <span className={`text-2xl font-bold ${stats.passwordHealth.weak_count > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                    <span
+                      className={`text-2xl font-bold ${stats.passwordHealth.weak_count > 0 ? 'text-amber-400' : 'text-emerald-400'}`}
+                    >
                       {stats.passwordHealth.weak_count}
                     </span>
                     <span className="text-xs text-muted-foreground">accounts</span>
@@ -306,9 +305,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-1.5">
-                  <span className="text-xs text-muted-foreground font-medium">Reused Passwords</span>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Reused Passwords
+                  </span>
                   <div className="flex items-baseline gap-2">
-                    <span className={`text-2xl font-bold ${stats.passwordHealth.reused_count > 0 ? 'text-destructive' : 'text-emerald-400'}`}>
+                    <span
+                      className={`text-2xl font-bold ${stats.passwordHealth.reused_count > 0 ? 'text-destructive' : 'text-emerald-400'}`}
+                    >
                       {stats.passwordHealth.reused_count}
                     </span>
                     <span className="text-xs text-muted-foreground">duplicates</span>
@@ -327,9 +330,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center gap-2 border-b border-border/60 pb-3">
                   <Lock className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Runtime Policies
-                  </h3>
+                  <h3 className="text-sm font-semibold text-foreground">Runtime Policies</h3>
                 </div>
 
                 <div className="space-y-2.5 text-xs">
@@ -355,9 +356,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span className="text-muted-foreground flex items-center gap-1.5">
                       <ShieldCheck className="h-3.5 w-3.5" /> Storage Mode:
                     </span>
-                    <span className="font-mono text-emerald-400 font-semibold">
-                      RAM SQLite
-                    </span>
+                    <span className="font-mono text-emerald-400 font-semibold">RAM SQLite</span>
                   </div>
                 </div>
               </div>

@@ -51,7 +51,10 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-xl border border-border bg-card p-6 shadow-xl space-y-4"
+      >
         {status === 'Uninitialised' && (
           <Input
             label="Vault File Path"
@@ -81,7 +84,10 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
 
         {(clientError || error) && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/15 p-3 text-xs text-destructive">
-            {clientError || (error?.code === 'AuthenticationFailed' ? 'Incorrect master password or corrupted vault. Please verify your password.' : error?.message)}
+            {clientError ||
+              (error?.code === 'AuthenticationFailed'
+                ? 'Incorrect master password or corrupted vault. Please verify your password.'
+                : error?.message)}
           </div>
         )}
 
@@ -104,4 +110,3 @@ export const UnlockVault: React.FC<UnlockVaultProps> = ({ onSwitchToCreate }) =>
     </div>
   );
 };
-

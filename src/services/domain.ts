@@ -25,7 +25,6 @@ import type {
 
 import { normalizeError } from './vault';
 
-
 /**
  * Retrieves the list of account summaries matching optional filters.
  */
@@ -63,7 +62,6 @@ export async function searchAccounts(
     throw normalizeError(err);
   }
 }
-
 
 /**
  * Retrieves full account details (including tags and custom fields, with password omitted).
@@ -111,7 +109,8 @@ export async function updateAccount(
   try {
     const fields: Record<string, unknown> = {};
     if (input.platform_id !== undefined) fields.platform_id = input.platform_id || null;
-    if (input.display_name !== undefined) fields.display_name = input.display_name ? input.display_name : null;
+    if (input.display_name !== undefined)
+      fields.display_name = input.display_name ? input.display_name : null;
     if (input.username !== undefined) fields.username = input.username ? input.username : null;
     if (input.email !== undefined) fields.email = input.email ? input.email : null;
     if (input.password !== undefined) fields.password = input.password ? input.password : null;
@@ -141,7 +140,6 @@ export async function deleteAccount(accountId: string): Promise<void> {
     throw normalizeError(err);
   }
 }
-
 
 /**
  * Reveals a secret value across IPC on-demand.
@@ -243,10 +241,7 @@ export async function updatePlatform(
  * Deletes a platform by ID.
  * Requires confirmationToken to match platformId for cascading account deletion safety.
  */
-export async function deletePlatform(
-  platformId: string,
-  confirmationToken: string
-): Promise<void> {
+export async function deletePlatform(platformId: string, confirmationToken: string): Promise<void> {
   try {
     await invoke<void>('delete_platform', {
       platformId,
@@ -513,14 +508,10 @@ export async function deleteLogo(logoId: string): Promise<void> {
 /**
  * Assigns or unassigns a logo to/from a platform.
  */
-export async function assignLogo(
-  platformId: string,
-  logoId: string | null
-): Promise<void> {
+export async function assignLogo(platformId: string, logoId: string | null): Promise<void> {
   try {
     await invoke<void>('assign_logo', { platformId, logoId: logoId || null });
   } catch (err) {
     throw normalizeError(err);
   }
 }
-

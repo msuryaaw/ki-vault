@@ -98,7 +98,11 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
             maxLength={256}
             showCharCount
             isValid={name.trim().length >= 2}
-            error={name.length > 0 && name.trim().length < 2 ? 'Platform name must be at least 2 characters.' : undefined}
+            error={
+              name.length > 0 && name.trim().length < 2
+                ? 'Platform name must be at least 2 characters.'
+                : undefined
+            }
             disabled={loading}
             autoFocus
             required
@@ -128,7 +132,11 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
             maxLength={2048}
             showCharCount
             isValid={website.length > 0 && /^https?:\/\/.+/i.test(website.trim())}
-            error={website.length > 0 && !/^https?:\/\/.+/i.test(website.trim()) ? 'Use a full URL starting with http:// or https://' : undefined}
+            error={
+              website.length > 0 && !/^https?:\/\/.+/i.test(website.trim())
+                ? 'Use a full URL starting with http:// or https://'
+                : undefined
+            }
             disabled={loading}
           />
 
@@ -175,26 +183,13 @@ export const PlatformFormModal: React.FC<PlatformFormModalProps> = ({
             </div>
           </div>
 
-          {clientError && (
-            <p className="text-xs text-destructive">{clientError}</p>
-          )}
+          {clientError && <p className="text-xs text-destructive">{clientError}</p>}
 
           <div className="flex items-center justify-end gap-2.5 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onClose}
-              disabled={loading}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              loading={loading}
-            >
+            <Button type="submit" variant="primary" size="sm" loading={loading}>
               {isEditing ? 'Save Changes' : 'Create Platform'}
             </Button>
           </div>

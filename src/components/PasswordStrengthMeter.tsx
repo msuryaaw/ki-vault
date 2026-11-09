@@ -48,9 +48,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
     <div className={cn('space-y-1.5', className)}>
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground font-medium">Strength:</span>
-        <span className={cn('font-semibold capitalize', getLabelColor())}>
-          {strength.level}
-        </span>
+        <span className={cn('font-semibold capitalize', getLabelColor())}>{strength.level}</span>
       </div>
       <div className="grid grid-cols-4 gap-1.5 h-1.5">
         {[0, 1, 2, 3].map((idx) => (

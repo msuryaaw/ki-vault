@@ -41,7 +41,6 @@ import {
   X,
 } from 'lucide-react';
 
-
 interface AccountListProps {
   initialFavoriteOnly?: boolean;
   onNavigateToPlatforms?: () => void;
@@ -187,13 +186,13 @@ export const AccountList: React.FC<AccountListProps> = ({
     setError(null);
     try {
       await createAccount(data);
-      setSuccessNotice(`Account "${data.display_name || data.username || 'Account'}" created successfully.`);
+      setSuccessNotice(
+        `Account "${data.display_name || data.username || 'Account'}" created successfully.`
+      );
       setTimeout(() => setSuccessNotice(null), 4000);
       setIsFormModalOpen(false);
       await fetchAccounts();
       await loadPlatformsList();
-    } catch (err) {
-      throw err;
     } finally {
       setActionLoading(false);
     }
@@ -210,8 +209,6 @@ export const AccountList: React.FC<AccountListProps> = ({
       setEditingAccount(null);
       await fetchAccounts();
       await loadPlatformsList();
-    } catch (err) {
-      throw err;
     } finally {
       setActionLoading(false);
     }
@@ -228,8 +225,6 @@ export const AccountList: React.FC<AccountListProps> = ({
       setSelectedAccountId(null);
       await fetchAccounts();
       await loadPlatformsList();
-    } catch (err) {
-      throw err;
     } finally {
       setActionLoading(false);
     }
@@ -272,7 +267,6 @@ export const AccountList: React.FC<AccountListProps> = ({
       day: 'numeric',
     });
   };
-
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 text-left">
@@ -351,7 +345,6 @@ export const AccountList: React.FC<AccountListProps> = ({
           </button>
         </div>
       )}
-
 
       {/* Controls Bar: Search, Platform Filter, Tag Filter, Favorites Toggle, Sorting */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 bg-card border border-border p-3.5 rounded-xl shadow-xs">
@@ -460,7 +453,9 @@ export const AccountList: React.FC<AccountListProps> = ({
       {loading && accounts.length === 0 ? (
         <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
           <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs text-muted-foreground">Retrieving accounts from encrypted vault...</p>
+          <p className="text-xs text-muted-foreground">
+            Retrieving accounts from encrypted vault...
+          </p>
         </div>
       ) : accounts.length === 0 ? (
         <div className="py-20 border border-dashed border-border rounded-xl flex flex-col items-center justify-center text-center px-4 bg-card/20">
@@ -471,15 +466,15 @@ export const AccountList: React.FC<AccountListProps> = ({
             {effectiveFavoriteOnly
               ? 'No favorite accounts found'
               : searchQuery.trim() || selectedPlatformId !== 'all' || selectedTagId !== 'all'
-              ? 'No accounts match your search/filter criteria'
-              : 'No accounts stored in this vault'}
+                ? 'No accounts match your search/filter criteria'
+                : 'No accounts stored in this vault'}
           </h3>
           <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-5">
             {effectiveFavoriteOnly
               ? 'Mark accounts as favorite with the star icon to see them here.'
               : searchQuery.trim() || selectedPlatformId !== 'all' || selectedTagId !== 'all'
-              ? 'Try adjusting your search query or selecting a different platform or tag.'
-              : 'Add platforms and accounts to organize your passwords securely.'}
+                ? 'Try adjusting your search query or selecting a different platform or tag.'
+                : 'Add platforms and accounts to organize your passwords securely.'}
           </p>
 
           {searchQuery.trim() || selectedPlatformId !== 'all' || selectedTagId !== 'all' ? (
@@ -521,7 +516,9 @@ export const AccountList: React.FC<AccountListProps> = ({
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <PlatformLogo
-                      logoId={acc.logo_id || platforms.find((p) => p.id === acc.platform_id)?.logo_id}
+                      logoId={
+                        acc.logo_id || platforms.find((p) => p.id === acc.platform_id)?.logo_id
+                      }
                       platformName={acc.platform_name}
                       size="sm"
                     />
@@ -547,9 +544,7 @@ export const AccountList: React.FC<AccountListProps> = ({
                     title={acc.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
                     aria-label={acc.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
                   >
-                    <Star
-                      className={`h-4 w-4 ${acc.is_favorite ? 'fill-amber-500' : ''}`}
-                    />
+                    <Star className={`h-4 w-4 ${acc.is_favorite ? 'fill-amber-500' : ''}`} />
                   </button>
                 </div>
 
@@ -643,5 +638,3 @@ export const AccountList: React.FC<AccountListProps> = ({
     </div>
   );
 };
-
-

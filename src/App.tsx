@@ -17,12 +17,7 @@ const VaultContent: React.FC<{
   setActiveTab: (tab: NavTab) => void;
   accountsInitialFavoriteOnly: boolean;
   onNavigateToFavorites: () => void;
-}> = ({
-  activeTab,
-  setActiveTab,
-  accountsInitialFavoriteOnly,
-  onNavigateToFavorites,
-}) => {
+}> = ({ activeTab, setActiveTab, accountsInitialFavoriteOnly, onNavigateToFavorites }) => {
   const { status, loading, refreshStatus } = useVault();
 
   // Attach user activity listeners while vault is unlocked
@@ -74,7 +69,6 @@ const VaultContent: React.FC<{
         );
     }
   }
-
 
   // 2. Vault is Locked -> Render Unlock screen (or allow creating a new vault)
   if (status === 'Locked') {

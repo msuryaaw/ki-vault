@@ -69,7 +69,9 @@ export function Dropdown<T extends string | number = string>({
   // Scroll active option into view
   useEffect(() => {
     if (isOpen && listboxRef.current && highlightedIndex >= 0) {
-      const activeElement = listboxRef.current.children[highlightedIndex] as HTMLElement | undefined;
+      const activeElement = listboxRef.current.children[highlightedIndex] as
+        | HTMLElement
+        | undefined;
       activeElement?.scrollIntoView({ block: 'nearest' });
     }
   }, [isOpen, highlightedIndex]);
@@ -146,10 +148,7 @@ export function Dropdown<T extends string | number = string>({
   };
 
   return (
-    <div
-      ref={containerRef}
-      className={cn('relative w-full text-left select-none', className)}
-    >
+    <div ref={containerRef} className={cn('relative w-full text-left select-none', className)}>
       {/* Trigger Button */}
       <button
         type="button"
@@ -170,16 +169,9 @@ export function Dropdown<T extends string | number = string>({
       >
         <div className="flex items-center gap-2 truncate min-w-0 pr-1">
           {prefixIcon && (
-            <span className="shrink-0 text-muted-foreground pointer-events-none">
-              {prefixIcon}
-            </span>
+            <span className="shrink-0 text-muted-foreground pointer-events-none">{prefixIcon}</span>
           )}
-          <span
-            className={cn(
-              'truncate font-normal',
-              !selectedOption && 'text-muted-foreground'
-            )}
-          >
+          <span className={cn('truncate font-normal', !selectedOption && 'text-muted-foreground')}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
         </div>
@@ -224,9 +216,7 @@ export function Dropdown<T extends string | number = string>({
                 )}
               >
                 <span className="truncate pr-2">{option.label}</span>
-                {isSelected && (
-                  <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
-                )}
+                {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
               </li>
             );
           })}

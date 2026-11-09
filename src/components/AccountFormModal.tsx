@@ -28,7 +28,6 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 
-
 interface AccountFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -339,7 +338,11 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 maxLength={64}
                 showCharCount
                 isValid={displayName.trim().length >= 3}
-                error={displayName.length > 0 && displayName.trim().length < 3 ? 'Account title must be at least 3 characters.' : undefined}
+                error={
+                  displayName.length > 0 && displayName.trim().length < 3
+                    ? 'Account title must be at least 3 characters.'
+                    : undefined
+                }
                 disabled={loading}
               />
 
@@ -368,7 +371,11 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 maxLength={256}
                 showCharCount
                 isValid={email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}
-                error={email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? 'Please enter a valid email address.' : undefined}
+                error={
+                  email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+                    ? 'Please enter a valid email address.'
+                    : undefined
+                }
                 disabled={loading}
               />
 
@@ -383,7 +390,11 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 maxLength={2048}
                 showCharCount
                 isValid={url.length > 0 && /^https?:\/\/.+/i.test(url.trim())}
-                error={url.length > 0 && !/^https?:\/\/.+/i.test(url.trim()) ? 'Enter a valid URL starting with http:// or https://' : undefined}
+                error={
+                  url.length > 0 && !/^https?:\/\/.+/i.test(url.trim())
+                    ? 'Enter a valid URL starting with http:// or https://'
+                    : undefined
+                }
                 disabled={loading}
               />
             </div>
@@ -404,7 +415,9 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
             </label>
             <Input
               type="password"
-              placeholder={isEditing ? 'Enter new password to change...' : 'Enter account password...'}
+              placeholder={
+                isEditing ? 'Enter new password to change...' : 'Enter account password...'
+              }
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onClear={() => setPassword('')}
@@ -425,7 +438,9 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 className="h-4 w-4 rounded border-input text-primary focus:ring-primary cursor-pointer"
               />
               <span className="text-xs font-medium text-foreground flex items-center gap-1">
-                <Star className={`h-3.5 w-3.5 ${favorite ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'}`} />
+                <Star
+                  className={`h-3.5 w-3.5 ${favorite ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'}`}
+                />
                 Mark as Favorite (starred for quick access)
               </span>
             </label>
@@ -556,11 +571,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
             <div className="flex items-center justify-between p-2.5 rounded-lg border border-input bg-background/50">
               <div className="flex items-center gap-2.5 min-w-0">
                 {logoId ? (
-                  <PlatformLogo
-                    logoId={logoId}
-                    platformName={displayName || 'Account'}
-                    size="sm"
-                  />
+                  <PlatformLogo logoId={logoId} platformName={displayName || 'Account'} size="sm" />
                 ) : (
                   <div className="h-6 w-6 rounded-lg bg-muted flex items-center justify-center text-muted-foreground shrink-0">
                     <ImageIcon className="h-3.5 w-3.5" />

@@ -35,10 +35,7 @@ export const VaultStatusView: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [sec, health] = await Promise.all([
-        getSecurityStatus(),
-        getPasswordHealth(),
-      ]);
+      const [sec, health] = await Promise.all([getSecurityStatus(), getPasswordHealth()]);
       setSecurityStatus(sec);
       setPasswordHealth(health);
     } catch (err) {
@@ -61,10 +58,7 @@ export const VaultStatusView: React.FC = () => {
     try {
       const [, [sec, health]] = await Promise.all([
         refreshStatus({ silent: true }),
-        Promise.all([
-          getSecurityStatus(),
-          getPasswordHealth(),
-        ]),
+        Promise.all([getSecurityStatus(), getPasswordHealth()]),
       ]);
       setSecurityStatus(sec);
       setPasswordHealth(health);
@@ -127,8 +121,9 @@ export const VaultStatusView: React.FC = () => {
           <div className="space-y-1">
             <h4 className="text-sm font-semibold">Security Warning: Vault Integrity Degraded</h4>
             <p className="text-xs leading-relaxed text-destructive/90">
-              The in-memory SQLite integrity check (`PRAGMA quick_check`) did not return `ok`. 
-              This could indicate corruption or memory tampering. It is strongly advised to export or back up your records and re-create your vault container.
+              The in-memory SQLite integrity check (`PRAGMA quick_check`) did not return `ok`. This
+              could indicate corruption or memory tampering. It is strongly advised to export or
+              back up your records and re-create your vault container.
             </p>
           </div>
         </div>
@@ -141,7 +136,8 @@ export const VaultStatusView: React.FC = () => {
           <div className="space-y-1">
             <h4 className="text-sm font-semibold">Failed to Retrieve Security Status</h4>
             <p className="text-xs text-destructive/90">
-              {error.message || 'An unexpected error occurred while querying the security subsystem.'}
+              {error.message ||
+                'An unexpected error occurred while querying the security subsystem.'}
             </p>
             <Button
               variant="outline"
@@ -179,7 +175,10 @@ export const VaultStatusView: React.FC = () => {
                 </span>
               </div>
               <div className="space-y-1">
-                <p className="text-lg font-bold text-foreground truncate" title={summary?.vault_name}>
+                <p
+                  className="text-lg font-bold text-foreground truncate"
+                  title={summary?.vault_name}
+                >
                   {summary?.vault_name || 'Active Vault'}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -215,9 +214,7 @@ export const VaultStatusView: React.FC = () => {
                 <KeyRound className="h-4 w-4 text-primary" />
               </div>
               <div className="space-y-1">
-                <p className="text-lg font-bold text-foreground font-mono">
-                  {securityStatus.kdf}
-                </p>
+                <p className="text-lg font-bold text-foreground font-mono">{securityStatus.kdf}</p>
                 <p className="text-xs text-muted-foreground">
                   Memory-hard Argon2id (64 MiB, t=3, p=4)
                 </p>
@@ -230,9 +227,7 @@ export const VaultStatusView: React.FC = () => {
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">
-                  Password Health Telemetry
-                </h3>
+                <h3 className="text-sm font-semibold text-foreground">Password Health Telemetry</h3>
               </div>
               <span className="text-[11px] font-mono text-muted-foreground bg-muted/40 px-2 py-0.5 rounded">
                 Aggregated in Rust
@@ -266,7 +261,9 @@ export const VaultStatusView: React.FC = () => {
                 <div className="flex items-baseline gap-2">
                   <span
                     className={`text-2xl font-bold ${
-                      (passwordHealth?.reused_count ?? 0) > 0 ? 'text-destructive' : 'text-emerald-400'
+                      (passwordHealth?.reused_count ?? 0) > 0
+                        ? 'text-destructive'
+                        : 'text-emerald-400'
                     }`}
                   >
                     {passwordHealth ? passwordHealth.reused_count : '—'}
@@ -288,15 +285,14 @@ export const VaultStatusView: React.FC = () => {
             <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
               <div className="flex items-center gap-2 border-b border-border/60 pb-3">
                 <Clock className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">
-                  Runtime Security Policies
-                </h3>
+                <h3 className="text-sm font-semibold text-foreground">Runtime Security Policies</h3>
               </div>
 
               <div className="space-y-3 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground" /> Auto-Lock Inactivity Timeout:
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" /> Auto-Lock Inactivity
+                    Timeout:
                   </span>
                   <span className="font-mono text-foreground font-semibold px-2 py-0.5 rounded bg-muted/40">
                     {securityStatus.auto_lock}
@@ -305,7 +301,8 @@ export const VaultStatusView: React.FC = () => {
 
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Copy className="h-3.5 w-3.5 text-muted-foreground" /> Clipboard Auto-Clear Timeout:
+                    <Copy className="h-3.5 w-3.5 text-muted-foreground" /> Clipboard Auto-Clear
+                    Timeout:
                   </span>
                   <span className="font-mono text-foreground font-semibold px-2 py-0.5 rounded bg-muted/40">
                     {securityStatus.clipboard_timeout}s
@@ -314,7 +311,8 @@ export const VaultStatusView: React.FC = () => {
 
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" /> Vault Physical Integrity:
+                    <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" /> Vault Physical
+                    Integrity:
                   </span>
                   <span
                     className={`font-semibold px-2 py-0.5 rounded ${
@@ -333,16 +331,15 @@ export const VaultStatusView: React.FC = () => {
             <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
               <div className="flex items-center gap-2 border-b border-border/60 pb-3">
                 <Layers className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">
-                  Container Metadata
-                </h3>
+                <h3 className="text-sm font-semibold text-foreground">Container Metadata</h3>
               </div>
 
               <div className="space-y-3 text-xs">
                 <div>
                   <div className="flex items-center justify-between text-muted-foreground mb-1">
                     <span className="flex items-center gap-1.5">
-                      <Fingerprint className="h-3.5 w-3.5 text-muted-foreground" /> Container Vault ID:
+                      <Fingerprint className="h-3.5 w-3.5 text-muted-foreground" /> Container Vault
+                      ID:
                     </span>
                   </div>
                   <p

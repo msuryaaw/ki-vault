@@ -82,8 +82,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               'flex h-10 w-full rounded-lg border border-border bg-input/40 px-3 py-2 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/60 transition-colors focus:border-primary/50 focus:bg-input/60 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
               prefixIcon && 'pl-9',
               (suffixIcon || onClear || isValid || error) && 'pr-9',
-              error && 'border-destructive/80 bg-destructive/5 text-destructive focus:ring-destructive focus:border-destructive',
-              !error && isValid && 'border-emerald-500/80 bg-emerald-500/5 focus:ring-emerald-500 focus:border-emerald-500',
+              error &&
+                'border-destructive/80 bg-destructive/5 text-destructive focus:ring-destructive focus:border-destructive',
+              !error &&
+                isValid &&
+                'border-emerald-500/80 bg-emerald-500/5 focus:ring-emerald-500 focus:border-emerald-500',
               className
             )}
             {...props}
@@ -116,16 +119,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             <p className="text-xs text-destructive font-medium flex items-center gap-1">
               <span>{error}</span>
             </p>
-            {exampleText && (
-              <p className="text-[11px] text-muted-foreground">{exampleText}</p>
-            )}
+            {exampleText && <p className="text-[11px] text-muted-foreground">{exampleText}</p>}
           </div>
         ) : (
           <div className="space-y-0.5">
             {helperText && <p className="text-xs text-muted-foreground">{helperText}</p>}
-            {exampleText && (
-              <p className="text-[11px] text-muted-foreground/80">{exampleText}</p>
-            )}
+            {exampleText && <p className="text-[11px] text-muted-foreground/80">{exampleText}</p>}
           </div>
         )}
       </div>
@@ -134,4 +133,3 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = 'Input';
-

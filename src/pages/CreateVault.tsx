@@ -63,7 +63,10 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-xl border border-border bg-card p-6 shadow-xl space-y-4"
+      >
         <Input
           label="Vault Name"
           value={vaultName}
@@ -120,7 +123,8 @@ export const CreateVault: React.FC<CreateVaultProps> = ({ onSwitchToUnlock }) =>
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-2.5 text-xs text-amber-200/90">
           <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            <strong>Important:</strong> KiVault does not store your master password and cannot reset it through a server. Losing it will permanently render the vault inaccessible.
+            <strong>Important:</strong> KiVault does not store your master password and cannot reset
+            it through a server. Losing it will permanently render the vault inaccessible.
           </p>
         </div>
 

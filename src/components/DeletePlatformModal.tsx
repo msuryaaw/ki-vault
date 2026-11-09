@@ -78,8 +78,9 @@ export const DeletePlatformModal: React.FC<DeletePlatformModalProps> = ({
               <div className="space-y-1">
                 <p className="font-semibold text-xs">Cascading Deletion Warning</p>
                 <p className="text-[11px] leading-relaxed">
-                  This platform currently contains <strong>{platform.account_count} account(s)</strong>.
-                  Deleting it will permanently delete all associated credentials via SQLite foreign key cascade.
+                  This platform currently contains{' '}
+                  <strong>{platform.account_count} account(s)</strong>. Deleting it will permanently
+                  delete all associated credentials via SQLite foreign key cascade.
                 </p>
               </div>
             </div>
@@ -88,7 +89,8 @@ export const DeletePlatformModal: React.FC<DeletePlatformModalProps> = ({
           )}
 
           <p className="leading-relaxed">
-            To confirm this destructive action, please copy and paste the Platform ID below into the confirmation field:
+            To confirm this destructive action, please copy and paste the Platform ID below into the
+            confirmation field:
           </p>
 
           <div className="rounded bg-muted/40 p-2 font-mono text-[11px] text-foreground select-all break-all border border-border/50">
@@ -107,9 +109,7 @@ export const DeletePlatformModal: React.FC<DeletePlatformModalProps> = ({
             required
           />
 
-          {error && (
-            <p className="text-xs text-destructive">{error}</p>
-          )}
+          {error && <p className="text-xs text-destructive">{error}</p>}
 
           <div className="flex items-center justify-end gap-2.5 pt-2">
             <Button

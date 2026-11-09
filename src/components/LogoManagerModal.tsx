@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { LogoSummary } from '../types/domain';
 import type { CommandError } from '../types/vault';
-import {
-  listLogos,
-  importLogo,
-  renameLogo,
-  deleteLogo,
-  getLogo,
-} from '../services/domain';
+import { listLogos, importLogo, renameLogo, deleteLogo, getLogo } from '../services/domain';
 import { Button } from './Button';
 import { Input } from './Input';
 import {
@@ -23,12 +17,7 @@ import {
 } from 'lucide-react';
 
 const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2 MiB
-const ALLOWED_MIME_TYPES = [
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'image/svg+xml',
-];
+const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 
 interface LogoManagerModalProps {
   isOpen: boolean;
@@ -160,14 +149,18 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
 
     // Check size limit: 2 MiB
     if (file.size > MAX_LOGO_SIZE_BYTES) {
-      setError(`File is too large (${(file.size / (1024 * 1024)).toFixed(2)} MB). Maximum file size is 2 MB.`);
+      setError(
+        `File is too large (${(file.size / (1024 * 1024)).toFixed(2)} MB). Maximum file size is 2 MB.`
+      );
       return;
     }
 
     // Check MIME type with extension inference
     const mime = inferMimeType(file);
     if (!ALLOWED_MIME_TYPES.includes(mime)) {
-      setError(`Unsupported file format (${file.type || mime || 'unknown'}). Allowed formats: PNG, JPG/JPEG, WebP, SVG.`);
+      setError(
+        `Unsupported file format (${file.type || mime || 'unknown'}). Allowed formats: PNG, JPG/JPEG, WebP, SVG.`
+      );
       return;
     }
 
@@ -205,11 +198,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
       const numberArray = Array.from(uint8Array);
 
       const mimeType = inferMimeType(selectedFile);
-      const imported = await importLogo(
-        trimmedName,
-        mimeType,
-        numberArray
-      );
+      const imported = await importLogo(trimmedName, mimeType, numberArray);
 
       // Reset import form
       setSelectedFile(null);
@@ -314,7 +303,8 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
                 Logo Manager
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                Import and organize brand icons for platforms and accounts stored in your encrypted vault.
+                Import and organize brand icons for platforms and accounts stored in your encrypted
+                vault.
               </p>
             </div>
           </div>
@@ -410,9 +400,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
                     <div className="p-2.5 rounded-xl bg-muted/50 text-muted-foreground group-hover:text-primary mb-2 transition-colors">
                       <Image className="h-6 w-6" />
                     </div>
-                    <span className="text-xs font-semibold text-foreground">
-                      Choose logo file
-                    </span>
+                    <span className="text-xs font-semibold text-foreground">Choose logo file</span>
                     <span className="text-[11px] text-muted-foreground mt-0.5">
                       Drag & drop or click to browse
                     </span>
@@ -460,9 +448,7 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
 
             {/* Requirements Checklist Card */}
             <div className="md:col-span-5 rounded-xl border border-border/60 bg-muted/20 p-3.5 flex flex-col justify-between text-xs space-y-2">
-              <span className="font-semibold text-foreground text-xs">
-                Logo requirements:
-              </span>
+              <span className="font-semibold text-foreground text-xs">Logo requirements:</span>
               <ul className="space-y-1.5 text-[11px] text-muted-foreground">
                 <li className="flex items-start gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
@@ -555,7 +541,10 @@ export const LogoManagerModal: React.FC<LogoManagerModalProps> = ({
                   >
                     {/* Selected Badge */}
                     {isSelected && (
-                      <div className="absolute top-2 right-2 text-primary" title="Currently selected">
+                      <div
+                        className="absolute top-2 right-2 text-primary"
+                        title="Currently selected"
+                      >
                         <CheckCircle2 className="h-4 w-4 fill-primary text-primary-foreground" />
                       </div>
                     )}

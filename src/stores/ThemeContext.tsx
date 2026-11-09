@@ -46,8 +46,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const updateResolvedTheme = () => {
       const isSystemDark = mediaQuery.matches;
-      const actual: ResolvedTheme =
-        theme === 'system' ? (isSystemDark ? 'dark' : 'light') : theme;
+      const actual: ResolvedTheme = theme === 'system' ? (isSystemDark ? 'dark' : 'light') : theme;
 
       setResolvedTheme(actual);
 

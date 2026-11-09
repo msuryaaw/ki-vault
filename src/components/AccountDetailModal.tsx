@@ -1,5 +1,11 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { getAccountDetail, revealSecret, copySecret, getPlatform, getSettings } from '../services/domain';
+import {
+  getAccountDetail,
+  revealSecret,
+  copySecret,
+  getPlatform,
+  getSettings,
+} from '../services/domain';
 import type { AccountDetail, Platform, AccountSummary } from '../types/domain';
 import type { CommandError } from '../types/vault';
 import { useVault } from '../stores/VaultContext';
@@ -25,7 +31,6 @@ import {
   Trash2,
 } from 'lucide-react';
 
-
 interface AccountDetailModalProps {
   accountId: string | null;
   onClose: () => void;
@@ -39,7 +44,6 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
   onEdit,
   onDelete,
 }) => {
-
   const [detail, setDetail] = useState<AccountDetail | null>(null);
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -80,31 +84,34 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
   }, []);
 
   // Load account detail and platform data
-  const loadDetail = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-    clearAllAutoHideTimers();
-    setRevealedSecrets({});
-    setCopiedField(null);
-    try {
-      const data = await getAccountDetail(id);
-      setDetail(data);
+  const loadDetail = useCallback(
+    async (id: string) => {
+      setLoading(true);
+      setError(null);
+      clearAllAutoHideTimers();
+      setRevealedSecrets({});
+      setCopiedField(null);
+      try {
+        const data = await getAccountDetail(id);
+        setDetail(data);
 
-      // Attempt to load platform metadata (website, category, etc.)
-      if (data.account.platform_id) {
-        try {
-          const plat = await getPlatform(data.account.platform_id);
-          setPlatform(plat);
-        } catch {
-          // platform info is optional
+        // Attempt to load platform metadata (website, category, etc.)
+        if (data.account.platform_id) {
+          try {
+            const plat = await getPlatform(data.account.platform_id);
+            setPlatform(plat);
+          } catch {
+            // platform info is optional
+          }
         }
+      } catch (err) {
+        setError(err as CommandError);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err as CommandError);
-    } finally {
-      setLoading(false);
-    }
-  }, [clearAllAutoHideTimers]);
+    },
+    [clearAllAutoHideTimers]
+  );
 
   useEffect(() => {
     if (accountId) {
@@ -251,7 +258,8 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Platform: <strong className="text-foreground">{platform?.name || 'Loading...'}</strong>
+                Platform:{' '}
+                <strong className="text-foreground">{platform?.name || 'Loading...'}</strong>
                 {platform?.category ? ` (${platform.category})` : ''}
               </p>
             </div>
@@ -307,9 +315,13 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* Display Name */}
                   <div className="bg-background/80 border border-border/80 rounded-xl p-3 space-y-1">
-                    <span className="text-[11px] font-medium text-muted-foreground">Display Name</span>
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      Display Name
+                    </span>
                     <p className="text-xs font-semibold text-foreground">
-                      {account.display_name || <span className="text-muted-foreground italic font-normal">None</span>}
+                      {account.display_name || (
+                        <span className="text-muted-foreground italic font-normal">None</span>
+                      )}
                     </p>
                   </div>
 
@@ -317,7 +329,11 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                   <div className="bg-background/80 border border-border/80 rounded-xl p-3 space-y-1">
                     <span className="text-[11px] font-medium text-muted-foreground">Username</span>
                     <p className="text-xs font-mono font-semibold text-foreground">
-                      {account.username || <span className="text-muted-foreground italic font-normal font-sans">None</span>}
+                      {account.username || (
+                        <span className="text-muted-foreground italic font-normal font-sans">
+                          None
+                        </span>
+                      )}
                     </p>
                   </div>
 
@@ -325,17 +341,25 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                   <div className="bg-background/80 border border-border/80 rounded-xl p-3 space-y-1">
                     <span className="text-[11px] font-medium text-muted-foreground">Email</span>
                     <p className="text-xs font-mono text-foreground">
-                      {account.email || <span className="text-muted-foreground italic font-normal font-sans">None</span>}
+                      {account.email || (
+                        <span className="text-muted-foreground italic font-normal font-sans">
+                          None
+                        </span>
+                      )}
                     </p>
                   </div>
 
                   {/* Website / URL */}
                   <div className="bg-background/80 border border-border/80 rounded-xl p-3 space-y-1">
-                    <span className="text-[11px] font-medium text-muted-foreground">Target URL</span>
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      Target URL
+                    </span>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-mono truncate text-foreground">
                         {account.url || platform?.website || (
-                          <span className="text-muted-foreground italic font-normal font-sans">None</span>
+                          <span className="text-muted-foreground italic font-normal font-sans">
+                            None
+                          </span>
                         )}
                       </p>
                       {(account.url || platform?.website) && (
@@ -373,7 +397,9 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                       {revealedSecrets['password'] ? (
                         <span>{revealedSecrets['password']}</span>
                       ) : (
-                        <span className="text-muted-foreground tracking-widest">••••••••••••••••</span>
+                        <span className="text-muted-foreground tracking-widest">
+                          ••••••••••••••••
+                        </span>
                       )}
                     </div>
 
@@ -483,7 +509,9 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                             <div className="text-xs font-mono text-muted-foreground truncate">
                               {cf.is_sensitive ? (
                                 isRevealed ? (
-                                  <span className="text-foreground">{revealedSecrets[cf.field_name]}</span>
+                                  <span className="text-foreground">
+                                    {revealedSecrets[cf.field_name]}
+                                  </span>
                                 ) : (
                                   <span className="tracking-widest">••••••••</span>
                                 )
@@ -502,7 +530,11 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                                 onClick={() => handleToggleReveal(cf.field_name)}
                                 className="h-7 px-2 text-xs gap-1"
                               >
-                                {isRevealed ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                {isRevealed ? (
+                                  <EyeOff className="h-3 w-3" />
+                                ) : (
+                                  <Eye className="h-3 w-3" />
+                                )}
                                 <span>{isRevealed ? 'Hide' : 'Reveal'}</span>
                               </Button>
 
@@ -613,7 +645,6 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
               Done
             </Button>
           </div>
-
         </div>
       </div>
     </div>

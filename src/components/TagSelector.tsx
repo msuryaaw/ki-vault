@@ -88,7 +88,10 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
 
       {/* Quick Tag Creator Inline */}
       {isCreating && (
-        <form onSubmit={handleQuickCreate} className="flex flex-col gap-1.5 p-2 rounded-lg bg-primary/5 border border-primary/20">
+        <form
+          onSubmit={handleQuickCreate}
+          className="flex flex-col gap-1.5 p-2 rounded-lg bg-primary/5 border border-primary/20"
+        >
           <div className="flex items-center gap-1.5">
             <input
               type="text"

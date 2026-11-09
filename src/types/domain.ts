@@ -119,8 +119,6 @@ export interface UpdateAccountInput {
   is_favorite?: boolean | null;
 }
 
-
-
 /**
  * Platform entity stored in the SQLite database.
  * Mirrors Rust `crate::platforms::Platform`.
@@ -284,5 +282,3 @@ export interface ActivityNotificationResponse {
   acknowledged: boolean;
   auto_lock_enforced: boolean;
 }
-
-

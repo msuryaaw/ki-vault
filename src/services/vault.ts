@@ -7,7 +7,10 @@ import type { VaultStatus, VaultSummary, CommandError } from '../types/vault';
 export function normalizeError(err: unknown): CommandError {
   if (err && typeof err === 'object') {
     const maybeCommandError = err as Record<string, unknown>;
-    if (typeof maybeCommandError.code === 'string' && typeof maybeCommandError.message === 'string') {
+    if (
+      typeof maybeCommandError.code === 'string' &&
+      typeof maybeCommandError.message === 'string'
+    ) {
       return {
         code: maybeCommandError.code,
         message: maybeCommandError.message,
@@ -71,10 +74,7 @@ export async function createVault(
 /**
  * Unlocks the active vault (or initialises from vaultPath if provided).
  */
-export async function unlockVault(
-  masterPassword: string,
-  vaultPath?: string
-): Promise<void> {
+export async function unlockVault(masterPassword: string, vaultPath?: string): Promise<void> {
   try {
     await invoke<void>('unlock_vault', {
       masterPassword,
@@ -146,5 +146,3 @@ export async function restoreBackup(
     throw normalizeError(err);
   }
 }
-
-

@@ -9,10 +9,7 @@ import {
 } from '../services/domain';
 import { changeMasterPassword, createBackup, restoreBackup } from '../services/vault';
 import { save, open } from '@tauri-apps/plugin-dialog';
-import type {
-  VaultSettings,
-  SecurityStatus,
-} from '../types/domain';
+import type { VaultSettings, SecurityStatus } from '../types/domain';
 import type { CommandError } from '../types/vault';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -35,7 +32,6 @@ import {
   Upload,
   AlertTriangle,
 } from 'lucide-react';
-
 
 export const Settings: React.FC = () => {
   const { summary } = useVault();
@@ -153,7 +149,7 @@ export const Settings: React.FC = () => {
         auto_lock: autoLock,
         clipboard_timeout: Number(clipboardTimeout),
       });
-      setSettings((prev) => prev ? { ...prev, security: updated } : null);
+      setSettings((prev) => (prev ? { ...prev, security: updated } : null));
       setSuccessNotice('Security timeout settings updated.');
       setTimeout(() => setSuccessNotice(null), 3500);
     } catch (err) {
@@ -176,7 +172,7 @@ export const Settings: React.FC = () => {
         use_numbers: genNumbers,
         use_symbols: genSymbols,
       });
-      setSettings((prev) => prev ? { ...prev, password_generator: updated } : null);
+      setSettings((prev) => (prev ? { ...prev, password_generator: updated } : null));
       setSuccessNotice('Password generator preferences saved.');
       setTimeout(() => setSuccessNotice(null), 3500);
     } catch (err) {
@@ -322,7 +318,9 @@ export const Settings: React.FC = () => {
     }
 
     if (restoreConfirmation.trim() !== 'CONFIRM_RESTORE') {
-      setRestoreError('You must type CONFIRM_RESTORE exactly to authorize overwriting the active vault.');
+      setRestoreError(
+        'You must type CONFIRM_RESTORE exactly to authorize overwriting the active vault.'
+      );
       return;
     }
 
@@ -333,7 +331,9 @@ export const Settings: React.FC = () => {
       setRestorePassword('');
       setRestoreConfirmation('');
       setIsRestoreModalOpen(false);
-      setRestoreStatusMessage('Vault restored successfully. Active master password remains in force.');
+      setRestoreStatusMessage(
+        'Vault restored successfully. Active master password remains in force.'
+      );
       // Refresh settings and vault summary in view
       await loadData();
       setTimeout(() => setRestoreStatusMessage(null), 6000);
@@ -721,8 +721,8 @@ export const Settings: React.FC = () => {
                     {t === 'system'
                       ? 'Sync with OS desktop configuration'
                       : t === 'dark'
-                      ? 'High-contrast dark desktop theme'
-                      : 'Clean light desktop theme'}
+                        ? 'High-contrast dark desktop theme'
+                        : 'Clean light desktop theme'}
                   </p>
                 </div>
               ))}
@@ -744,7 +744,9 @@ export const Settings: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
               <div className="bg-background/80 border border-border/80 rounded-xl p-3 space-y-1">
                 <span className="text-[11px] text-muted-foreground">Vault Name</span>
-                <p className="font-semibold text-foreground">{summary?.vault_name || 'Active Vault'}</p>
+                <p className="font-semibold text-foreground">
+                  {summary?.vault_name || 'Active Vault'}
+                </p>
               </div>
 
               <div className="bg-background/80 border border-border/80 rounded-xl p-3 space-y-1">
@@ -763,9 +765,7 @@ export const Settings: React.FC = () => {
 
               <div className="bg-background/80 border border-border/80 rounded-xl p-3 space-y-1">
                 <span className="text-[11px] text-muted-foreground">Schema Version</span>
-                <p className="font-semibold text-foreground font-mono">
-                  v1 (SQLite)
-                </p>
+                <p className="font-semibold text-foreground font-mono">v1 (SQLite)</p>
               </div>
 
               <div className="bg-background/80 border border-border/80 rounded-xl p-3 space-y-1">
@@ -806,7 +806,9 @@ export const Settings: React.FC = () => {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Create an encrypted full container snapshot (<code className="font-mono text-[11px] text-primary">.kivault</code>) or restore from an existing backup. The active master password remains in force after restoring.
+              Create an encrypted full container snapshot (
+              <code className="font-mono text-[11px] text-primary">.kivault</code>) or restore from
+              an existing backup. The active master password remains in force after restoring.
             </p>
 
             {/* Global Backup/Restore Notices */}
@@ -826,14 +828,18 @@ export const Settings: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1 items-stretch">
               {/* Create Backup Box */}
               <div className="rounded-xl border border-border/80 bg-background/50 p-5 flex flex-col justify-between">
-                <form onSubmit={handleCreateBackup} className="flex-1 flex flex-col justify-between space-y-4">
+                <form
+                  onSubmit={handleCreateBackup}
+                  className="flex-1 flex flex-col justify-between space-y-4"
+                >
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-foreground font-semibold text-xs">
                       <Download className="h-4 w-4 text-primary" />
                       <span>Create Backup Snapshot</span>
                     </div>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Saves an encrypted snapshot of the current active database to a chosen location.
+                      Saves an encrypted snapshot of the current active database to a chosen
+                      location.
                     </p>
 
                     <div className="space-y-1.5 pt-1">
@@ -894,7 +900,9 @@ export const Settings: React.FC = () => {
                       <span>Restore from Backup</span>
                     </div>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Restore credentials and vault data from a <code className="font-mono text-[10px] text-primary">.kivault</code> backup container. Re-encrypts with your active master password.
+                      Restore credentials and vault data from a{' '}
+                      <code className="font-mono text-[10px] text-primary">.kivault</code> backup
+                      container. Re-encrypts with your active master password.
                     </p>
 
                     <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
@@ -903,7 +911,8 @@ export const Settings: React.FC = () => {
                         <span>Destructive Operation</span>
                       </div>
                       <p className="text-[10px] text-muted-foreground leading-relaxed">
-                        Restoring replaces the active database with the backup data. A password check and explicit confirmation token are required.
+                        Restoring replaces the active database with the backup data. A password
+                        check and explicit confirmation token are required.
                       </p>
                     </div>
                   </div>
@@ -948,14 +957,13 @@ export const Settings: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 text-xs text-muted-foreground">
-                  <p>
-                    You are restoring from file:
-                  </p>
+                  <p>You are restoring from file:</p>
                   <p className="font-mono text-[11px] text-foreground bg-muted/60 p-2 rounded-lg border border-border break-all">
                     {restoreSource}
                   </p>
                   <p className="text-[11px] text-amber-500 font-medium">
-                    ⚠️ Current active credentials and metadata will be completely replaced by the backup snapshot.
+                    ⚠️ Current active credentials and metadata will be completely replaced by the
+                    backup snapshot.
                   </p>
                 </div>
 
@@ -1006,7 +1014,9 @@ export const Settings: React.FC = () => {
                       variant="destructive"
                       size="sm"
                       loading={restoreLoading}
-                      disabled={!restorePassword || restoreConfirmation.trim() !== 'CONFIRM_RESTORE'}
+                      disabled={
+                        !restorePassword || restoreConfirmation.trim() !== 'CONFIRM_RESTORE'
+                      }
                     >
                       Restore & Replace Vault
                     </Button>

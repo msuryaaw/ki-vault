@@ -35,7 +35,8 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
     }
   };
 
-  const displayName = account.display_name || account.username || account.email || 'Untitled Account';
+  const displayName =
+    account.display_name || account.username || account.email || 'Untitled Account';
 
   return (
     <div
@@ -74,7 +75,8 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
         </div>
 
         <p className="text-xs text-muted-foreground">
-          All associated credentials, custom fields, and tags will be permanently removed from this encrypted vault.
+          All associated credentials, custom fields, and tags will be permanently removed from this
+          encrypted vault.
         </p>
 
         {error && (
@@ -85,13 +87,7 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
 
         {/* Action buttons */}
         <div className="flex justify-end gap-3 pt-3 border-t border-border">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onClose}
-            disabled={loading}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
           <Button
@@ -103,7 +99,6 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
           >
             Delete Account
           </Button>
-
         </div>
       </div>
     </div>

@@ -28,8 +28,6 @@ import { DeleteAccountModal } from '../components/DeleteAccountModal';
 import { LogoManagerModal } from '../components/LogoManagerModal';
 import { PlatformLogo } from '../components/PlatformLogo';
 import {
-
-
   Globe,
   Plus,
   RefreshCw,
@@ -51,9 +49,7 @@ interface PlatformListProps {
   onAddAccountForPlatform?: (platformId: string) => void;
 }
 
-export const PlatformList: React.FC<PlatformListProps> = ({
-  onAddAccountForPlatform,
-}) => {
+export const PlatformList: React.FC<PlatformListProps> = ({ onAddAccountForPlatform }) => {
   const [platforms, setPlatforms] = useState<PlatformSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -80,7 +76,6 @@ export const PlatformList: React.FC<PlatformListProps> = ({
   const [editingAccount, setEditingAccount] = useState<AccountDetail | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<AccountSummary | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
-
 
   const loadPlatforms = useCallback(async () => {
     setLoading(true);
@@ -138,7 +133,6 @@ export const PlatformList: React.FC<PlatformListProps> = ({
     setSuccessNotice(null);
   };
 
-
   // Form submit handler (Create / Edit)
   const handleFormSubmit = async (data: CreatePlatformInput | UpdatePlatformInput) => {
     setActionLoading(true);
@@ -187,8 +181,6 @@ export const PlatformList: React.FC<PlatformListProps> = ({
         await loadPlatformAccounts(selectedPlatform.id);
       }
       await loadPlatforms();
-    } catch (err) {
-      throw err;
     } finally {
       setActionLoading(false);
     }
@@ -206,8 +198,6 @@ export const PlatformList: React.FC<PlatformListProps> = ({
         await loadPlatformAccounts(selectedPlatform.id);
       }
       await loadPlatforms();
-    } catch (err) {
-      throw err;
     } finally {
       setActionLoading(false);
     }
@@ -225,8 +215,6 @@ export const PlatformList: React.FC<PlatformListProps> = ({
         await loadPlatformAccounts(selectedPlatform.id);
       }
       await loadPlatforms();
-    } catch (err) {
-      throw err;
     } finally {
       setActionLoading(false);
     }
@@ -240,7 +228,6 @@ export const PlatformList: React.FC<PlatformListProps> = ({
       setIsAccountFormModalOpen(true);
     }
   };
-
 
   const filteredPlatforms = platforms.filter((p) => {
     const q = searchQuery.toLowerCase().trim();
@@ -283,7 +270,8 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                     <>
                       <span>•</span>
                       <span className="flex items-center gap-1">
-                        <Tag className="h-3 w-3 text-muted-foreground" /> {selectedPlatform.category}
+                        <Tag className="h-3 w-3 text-muted-foreground" />{' '}
+                        {selectedPlatform.category}
                       </span>
                     </>
                   )}
@@ -322,11 +310,7 @@ export const PlatformList: React.FC<PlatformListProps> = ({
               >
                 <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
               </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleTriggerAddAccount}
-              >
+              <Button variant="primary" size="sm" onClick={handleTriggerAddAccount}>
                 <Plus className="mr-1.5 h-4 w-4" /> Add Account
               </Button>
             </div>
@@ -344,7 +328,6 @@ export const PlatformList: React.FC<PlatformListProps> = ({
               </button>
             </div>
           )}
-
 
           {/* Accounts List for this Platform (docs/ui-ux-spec.md §7) */}
           <div className="space-y-3">
@@ -384,7 +367,12 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                         </span>
                       </div>
                       {acc.is_favorite && (
-                        <span className="text-amber-400 text-xs font-bold shrink-0" title="Starred favorite">★</span>
+                        <span
+                          className="text-amber-400 text-xs font-bold shrink-0"
+                          title="Starred favorite"
+                        >
+                          ★
+                        </span>
                       )}
                     </div>
 
@@ -410,7 +398,6 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                   </div>
                 ))}
               </div>
-
             )}
           </div>
         </div>
@@ -486,7 +473,9 @@ export const PlatformList: React.FC<PlatformListProps> = ({
               <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="font-semibold">Failed to load platforms</p>
-                <p className="opacity-90">{error.message} (Code: {error.code})</p>
+                <p className="opacity-90">
+                  {error.message} (Code: {error.code})
+                </p>
                 <Button
                   variant="outline"
                   size="sm"
@@ -548,11 +537,7 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <PlatformLogo
-                          logoId={p.logo_id}
-                          platformName={p.name}
-                          size="md"
-                        />
+                        <PlatformLogo logoId={p.logo_id} platformName={p.name} size="md" />
                         <div>
                           <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
                             {p.name}
@@ -599,7 +584,8 @@ export const PlatformList: React.FC<PlatformListProps> = ({
                   <div className="pt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Key className="h-3.5 w-3.5 text-primary" />
-                      <strong>{p.account_count}</strong> {p.account_count === 1 ? 'account' : 'accounts'}
+                      <strong>{p.account_count}</strong>{' '}
+                      {p.account_count === 1 ? 'account' : 'accounts'}
                     </span>
                     <span className="text-[11px] text-primary/80 group-hover:translate-x-0.5 transition-transform">
                       View Accounts →
@@ -683,5 +669,3 @@ export const PlatformList: React.FC<PlatformListProps> = ({
     </div>
   );
 };
-
-
