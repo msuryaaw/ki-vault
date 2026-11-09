@@ -330,7 +330,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Account Name / Title"
-                placeholder="Google, GitHub, BPK RI"
+                placeholder="Personal Email, Work Portal, GitHub"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 onClear={() => setDisplayName('')}

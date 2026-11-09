@@ -173,7 +173,7 @@ export const Layout: React.FC<LayoutProps> = ({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 bg-background overflow-y-auto">
+      <main className="flex-1 flex flex-col min-w-0 bg-background overflow-y-auto [scrollbar-gutter:stable]">
         <header className="h-14 border-b border-border flex items-center justify-between px-8 bg-card/20 shrink-0">
           <div className="text-xs text-muted-foreground">
             {summary ? `Active Vault: ${summary.vault_name}` : 'Local-first Credential Manager'}

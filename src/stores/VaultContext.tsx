@@ -13,7 +13,7 @@ interface VaultContextType {
   summary: VaultSummary | null;
   loading: boolean;
   error: CommandError | null;
-  refreshStatus: () => Promise<void>;
+  refreshStatus: (options?: { silent?: boolean }) => Promise<void>;
   createVault: (path: string, name: string, password: string) => Promise<void>;
   unlockVault: (password: string, path?: string) => Promise<void>;
   lockVault: () => Promise<void>;
@@ -30,11 +30,13 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const isCheckingRef = useRef<boolean>(false);
 
-  const refreshStatus = useCallback(async (showLoading: boolean = true) => {
+  const refreshStatus = useCallback(async (options?: { silent?: boolean } | boolean) => {
     if (isCheckingRef.current) {
       return;
     }
     isCheckingRef.current = true;
+    const isSilent = typeof options === 'boolean' ? !options : Boolean(options?.silent);
+    const showLoading = !isSilent;
     if (showLoading) {
       setLoading(true);
     }

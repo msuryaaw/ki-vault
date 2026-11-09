@@ -59,18 +59,15 @@ export const VaultStatusView: React.FC = () => {
     setIsRefreshing(true);
     setError(null);
     try {
-      await Promise.all([
-        refreshStatus(),
-        (async () => {
-          const [sec, health] = await Promise.all([
-            getSecurityStatus(),
-            getPasswordHealth(),
-          ]);
-          setSecurityStatus(sec);
-          setPasswordHealth(health);
-        })(),
-        new Promise((resolve) => setTimeout(resolve, 500)),
+      const [, [sec, health]] = await Promise.all([
+        refreshStatus({ silent: true }),
+        Promise.all([
+          getSecurityStatus(),
+          getPasswordHealth(),
+        ]),
       ]);
+      setSecurityStatus(sec);
+      setPasswordHealth(health);
     } catch (err) {
       setError(err as CommandError);
     } finally {
