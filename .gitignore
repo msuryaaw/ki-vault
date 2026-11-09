@@ -18,11 +18,28 @@ src-tauri/target/
 *.kivault
 *.kivault.tmp
 *.kivault.bak
+*.kivault-backup
 
 # Local databases
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 *.sqlite3
+
+# Credentials & Keys
+*.pem
+*.key
+*.pfx
+*.p12
+*.pkcs12
+id_rsa
+id_ecdsa
+id_ed25519
 
 # Logs
 *.log
