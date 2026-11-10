@@ -2,6 +2,8 @@ pub mod autolock;
 pub mod cbor;
 pub mod container;
 pub mod operations;
+#[cfg(windows)]
+pub mod os_windows;
 pub mod sqlite;
 pub mod storage;
 

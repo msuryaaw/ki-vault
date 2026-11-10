@@ -124,6 +124,26 @@ pub fn evaluate_auto_lock_tick<C: Clock>(
     clock: &C,
     local_gen: u64,
 ) -> AutoLockTickResult {
+    evaluate_auto_lock_tick_with_idle(auto_lock, vault_state, clock, local_gen, || {
+        #[cfg(windows)]
+        {
+            crate::vault::os_windows::get_windows_system_idle()
+        }
+        #[cfg(not(windows))]
+        {
+            None
+        }
+    })
+}
+
+/// Core evaluation logic with injectable system idle provider for deterministic testing.
+pub fn evaluate_auto_lock_tick_with_idle<C: Clock, F: Fn() -> Option<Duration>>(
+    auto_lock: &SharedAutoLock,
+    vault_state: &SharedVaultState,
+    clock: &C,
+    local_gen: u64,
+    get_system_idle: F,
+) -> AutoLockTickResult {
     let mut al = match auto_lock.0.lock() {
         Ok(guard) => guard,
         Err(_) => return AutoLockTickResult::LockFailed("AutoLock lock poisoned".into()),
@@ -143,8 +163,14 @@ pub fn evaluate_auto_lock_tick<C: Clock>(
     };
 
     let now = clock.now();
-    let elapsed = now.duration_since(al.last_activity);
-    if elapsed < timeout {
+    let app_elapsed = now.duration_since(al.last_activity);
+
+    // Check Windows system idle duration if available
+    let os_idle = get_system_idle();
+    let is_os_idle_expired = os_idle.is_some_and(|idle| idle >= timeout);
+
+    // If neither application inactivity nor OS session idle exceeded the threshold, stay unlocked
+    if app_elapsed < timeout && !is_os_idle_expired {
         return AutoLockTickResult::NotExpired;
     }
 
@@ -159,9 +185,11 @@ pub fn evaluate_auto_lock_tick<C: Clock>(
         return AutoLockTickResult::StaleGeneration;
     }
 
-    // Check if new activity arrived just before acquiring vs lock
+    // Check if new application activity arrived just before acquiring vs lock
     let re_elapsed = clock.now().duration_since(al.last_activity);
-    if re_elapsed < timeout {
+    let re_os_idle = get_system_idle();
+    let re_is_os_idle_expired = re_os_idle.is_some_and(|idle| idle >= timeout);
+    if re_elapsed < timeout && !re_is_os_idle_expired {
         return AutoLockTickResult::NotExpired;
     }
 
@@ -306,6 +334,11 @@ pub fn spawn_auto_lock_worker(
 }
 
 #[cfg(test)]
+pub(crate) use tests::MockClock;
+#[cfg(all(test, windows))]
+pub(crate) use tests::{setup_unlocked_vault, TempVault};
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -318,7 +351,6 @@ mod tests {
     use crate::vault::storage::write_vault_atomic;
     use zeroize::Zeroizing;
 
-    /// Mock clock allowing instant, thread-safe time advancement without real-world sleep.
     pub struct MockClock {
         start: Instant,
         offset_millis: AtomicU64,
@@ -344,12 +376,12 @@ mod tests {
         }
     }
 
-    struct TempVault {
-        path: PathBuf,
+    pub struct TempVault {
+        pub path: PathBuf,
     }
 
     impl TempVault {
-        fn new() -> Self {
+        pub fn new() -> Self {
             let salt = generate_salt().unwrap();
             let hex_salt: String = salt[..8].iter().map(|b| format!("{b:02x}")).collect();
             let mut path = std::env::temp_dir();
@@ -364,7 +396,7 @@ mod tests {
         }
     }
 
-    fn setup_unlocked_vault(path: &std::path::Path) -> (SharedAutoLock, SharedVaultState, u64) {
+    pub fn setup_unlocked_vault(path: &std::path::Path) -> (SharedAutoLock, SharedVaultState, u64) {
         let db = InMemoryDb::create_empty().unwrap();
         // Insert initial vault_metadata row
         {
@@ -424,8 +456,8 @@ mod tests {
         crate::commands::security::notify_activity_with_clock(&auto_lock, &vault_state, &clock)
             .unwrap();
 
-        // Evaluate tick
-        let res = evaluate_auto_lock_tick(&auto_lock, &vault_state, &clock, gen);
+        // Evaluate tick (using evaluate_auto_lock_tick_with_idle with no OS idle to isolate application activity race check)
+        let res = evaluate_auto_lock_tick_with_idle(&auto_lock, &vault_state, &clock, gen, || None);
         assert_eq!(res, AutoLockTickResult::NotExpired);
 
         // Vault must remain Unlocked

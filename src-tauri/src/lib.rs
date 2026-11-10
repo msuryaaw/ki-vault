@@ -45,6 +45,8 @@ pub fn run() {
                     let _ = window.set_icon(icon);
                 }
             }
+            #[cfg(windows)]
+            crate::vault::os_windows::init_windows_lifecycle(app.handle());
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
