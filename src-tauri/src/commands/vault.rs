@@ -340,6 +340,15 @@ pub fn create_vault(
     vault_name: String,
     master_password: String,
 ) -> std::result::Result<(), CommandError> {
+    create_vault_impl(&state, vault_path, vault_name, master_password)
+}
+
+pub fn create_vault_impl(
+    state: &SharedVaultState,
+    vault_path: String,
+    vault_name: String,
+    master_password: String,
+) -> std::result::Result<(), CommandError> {
     // 1. Input validation
     let path = validate_path(&vault_path)?;
     validate_vault_name(&vault_name)?;
@@ -391,7 +400,10 @@ pub fn create_vault(
     write_vault_atomic(&path, &container_bytes).map_err(map_error)?;
 
     // 7. Transition to Locked
-    let mut guard = lock_state(&state)?;
+    let mut guard = state
+        .0
+        .lock()
+        .map_err(|_| CommandError::new("Internal", "Internal vault state lock was poisoned."))?;
     *guard = VaultState::Locked { path };
 
     Ok(())

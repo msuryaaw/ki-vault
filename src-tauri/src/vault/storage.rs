@@ -231,6 +231,19 @@ impl Drop for OperationGuard {
 ///    - Linux/Unix: `rename(2)` followed by `fsync` on parent directory descriptor.
 /// 8. Verify post-replacement container integrity.
 pub fn write_vault_atomic(destination: &Path, container_bytes: &[u8]) -> Result<()> {
+    write_vault_atomic_with_observer(
+        destination,
+        container_bytes,
+        None::<fn(&Path) -> Result<()>>,
+    )
+}
+
+/// Internal atomic writer allowing an optional observer hook on the flushed staging file before atomic publication.
+pub fn write_vault_atomic_with_observer<F: FnOnce(&Path) -> Result<()>>(
+    destination: &Path,
+    container_bytes: &[u8],
+    observer: Option<F>,
+) -> Result<()> {
     // 1. Path safety checks
     validate_path_safety(destination)?;
     if destination.is_dir() {
@@ -291,8 +304,16 @@ pub fn write_vault_atomic(destination: &Path, container_bytes: &[u8]) -> Result<
         return Err(StorageError::Io(e).into());
     }
 
-    // Explicitly close staging handle before atomic replacement
+    // Explicitly close staging handle before observer & atomic replacement
     drop(staging_file);
+
+    // Call observer on the actual flushed staging file prior to atomic publication
+    if let Some(obs) = observer {
+        if let Err(e) = obs(&staging_path) {
+            let _ = std::fs::remove_file(&staging_path);
+            return Err(e);
+        }
+    }
 
     // 6. Execute platform-specific atomic replacement
     #[cfg(windows)]

@@ -131,6 +131,20 @@ impl UnlockedVault {
         let container_bytes = self.save_to_container()?;
         crate::vault::storage::write_vault_atomic(destination, &container_bytes)
     }
+
+    /// Saves the container with an optional staging observer before atomic replacement.
+    pub fn save_to_file_with_observer<F: FnOnce(&std::path::Path) -> Result<()>>(
+        &mut self,
+        destination: &std::path::Path,
+        observer: Option<F>,
+    ) -> Result<()> {
+        let container_bytes = self.save_to_container()?;
+        crate::vault::storage::write_vault_atomic_with_observer(
+            destination,
+            &container_bytes,
+            observer,
+        )
+    }
 }
 
 impl Drop for UnlockedVault {
