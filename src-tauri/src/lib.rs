@@ -97,3 +97,64 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(any(test, feature = "test-helpers"))]
+pub fn create_test_app() -> (
+    tauri::App<tauri::test::MockRuntime>,
+    tauri::WebviewWindow<tauri::test::MockRuntime>,
+) {
+    let app = tauri::test::mock_builder()
+        .manage(SharedAutoLock::new())
+        .manage(SharedVaultState::new())
+        .invoke_handler(tauri::generate_handler![
+            create_vault,
+            unlock_vault,
+            lock_vault,
+            get_vault_status,
+            get_vault_summary,
+            change_master_password,
+            create_platform,
+            list_platforms,
+            get_platform,
+            update_platform,
+            delete_platform,
+            create_account,
+            list_accounts,
+            search_accounts,
+            get_account_detail,
+            update_account,
+            delete_account,
+            create_tag,
+            list_tags,
+            rename_tag,
+            delete_tag,
+            assign_tag,
+            remove_tag,
+            reveal_secret,
+            copy_secret,
+            generate_password,
+            get_settings,
+            update_security_settings,
+            update_password_generator_settings,
+            get_security_status,
+            get_password_health,
+            notify_activity,
+            import_logo,
+            list_logos,
+            get_logo,
+            rename_logo,
+            replace_logo,
+            delete_logo,
+            assign_logo,
+            create_backup,
+            restore_backup,
+        ])
+        .build(tauri::generate_context!())
+        .expect("failed to build mock tauri app");
+
+    let main_window = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
+        .build()
+        .expect("failed to build main window");
+
+    (app, main_window)
+}
