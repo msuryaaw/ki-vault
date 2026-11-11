@@ -738,10 +738,14 @@ mod tests {
         let password_bytes = Zeroizing::new(master_password.as_bytes().to_vec());
 
         let initial_db = InMemoryDb::create_empty().map_err(map_error)?;
+        // Capture a single timestamp for both the DB row and the container header so that
+        // `vault.header.created_at` and `vault_metadata.updated_at` are always equal.
+        // Using two separate `current_unix_timestamp()` calls across a second boundary would
+        // cause `updated_at < created_at`, violating the invariant checked by the summary.
+        let now = current_unix_timestamp();
         {
             let vault_id_bytes = crate::crypto::generate_vault_id().map_err(map_error)?;
             let vault_id_hex = hex_encode(&vault_id_bytes);
-            let now = current_unix_timestamp();
             let conn = initial_db.conn().map_err(map_error)?;
             conn.execute(
                 "INSERT INTO vault_metadata (id, name, created_at, updated_at) VALUES (?1, ?2, ?3, ?4);",
@@ -751,8 +755,6 @@ mod tests {
         }
         let initial_image = initial_db.to_image().map_err(map_error)?;
         drop(initial_db);
-
-        let now = current_unix_timestamp();
         let container_bytes = crate::vault::operations::create_vault(
             &password_bytes,
             now,
